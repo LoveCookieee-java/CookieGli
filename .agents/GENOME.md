@@ -1,4 +1,4 @@
-# PROJECT GENOME (2026-09-01T16:07:08Z) | hash:5d3df24979
+# PROJECT GENOME (2026-09-01T16:11:37Z) | hash:5d3df24979
 
 [ARCHITECTURE_DNA]
 langs: Python(8)
@@ -37,4 +37,4 @@ conventions: snake_case-functions, PascalCase-classes, type-annotated
 
 [EVOLUTION_HOTSPOTS]
 recent_changes:
-  • 6529a4e feat: glimax v1.0.0 â€” token-economy plugin for Cla
+  • 5ccc648 feat: CookieGli v2.0.0 â€” Enterprise context genome

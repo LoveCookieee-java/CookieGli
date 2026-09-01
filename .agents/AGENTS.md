@@ -5,7 +5,7 @@ Chào mừng các Agent đến với dự án. Dự án này được vận hàn
 ---
 
 ## 1. Project Context Onboarding (Genome First)
-- **Luôn nạp Genome trước**: Khi bắt đầu một phiên làm việc hoặc tiếp nhận task mới, hãy đọc file [`.agents/GENOME.md`](file:///E:/AI/Glimax/CookieGli/.agents/GENOME.md) để nắm toàn bộ bức tranh kiến trúc dự án (Architecture DNA, Dependency Matrix, API Registry, Pattern Standards, Hotspots) chỉ trong < 600 tokens.
+- **Luôn nạp Genome trước**: Khi bắt đầu một phiên làm việc hoặc tiếp nhận task mới, hãy đọc file [`.agents/GENOME.md`](.agents/GENOME.md) để nắm toàn bộ bức tranh kiến trúc dự án (Architecture DNA, Dependency Matrix, API Registry, Pattern Standards, Hotspots) chỉ trong < 600 tokens.
 - **Không quét mù toàn bộ thư mục**: Tuyệt đối không đọc toàn bộ codebase bằng các lệnh liệt kê tốn token. Sử dụng `grep_search` và `view_file` có line range (`StartLine`/`EndLine`) dựa trên thông tin định vị từ `GENOME.md`.
 - **Cập nhật Genome sau thay đổi lớn**: Nếu vừa hoàn thành một đợt tái cấu trúc (refactor) lớn hoặc thêm nhiều file/class mới, hãy chạy:
   ```powershell
