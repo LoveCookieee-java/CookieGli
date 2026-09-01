@@ -5,6 +5,7 @@ Handles Python AST, JS/TS (including arrow functions, TS interfaces, decorators)
 """
 
 import ast
+import hashlib
 import os
 import re
 from dataclasses import dataclass, field
@@ -77,13 +78,23 @@ class AstScanner:
 
     ENTRY_POINT_NAMES = {'main', 'app', 'index', 'server', 'run', 'start', '__main__', 'cli', 'wsgi', 'asgi'}
 
-    def __init__(self, root_path: str, max_files: int = 500):
+    def __init__(self, root_path: str, max_files: int = 10000, use_cache: bool = True, cache_dir: Optional[str] = None):
         self.root_path = Path(root_path).resolve()
         self.max_files = max_files
+        self.use_cache = use_cache
+        self.cache = None
+        if self.use_cache:
+            try:
+                from .cache_db import AstCache
+                cdir = cache_dir or str(self.root_path / '.cookiegli')
+                self.cache = AstCache(cdir)
+            except Exception:
+                self.cache = None
 
     def scan(self) -> List[FileStructure]:
-        """Scan the project and return file structures."""
+        """Scan the project and return file structures with incremental caching."""
         results: List[FileStructure] = []
+        active_rel_paths: List[str] = []
         scanned_count = 0
 
         for current_dir, dirs, files in os.walk(self.root_path):
@@ -106,7 +117,29 @@ class AstScanner:
                 except ValueError:
                     rel_path = str(full_path)
 
-                structure = self._parse_file(full_path, rel_path, self.SUPPORTED_EXTENSIONS[ext])
+                active_rel_paths.append(rel_path)
+
+                # Incremental Cache check
+                structure = None
+                mtime = 0.0
+                try:
+                    mtime = full_path.stat().st_mtime
+                except Exception:
+                    pass
+
+                if self.cache and mtime > 0:
+                    cached_struct = self.cache.get(rel_path, mtime)
+                    if cached_struct is not None:
+                        structure = cached_struct
+
+                if structure is None:
+                    structure, sha = self._parse_file(full_path, rel_path, self.SUPPORTED_EXTENSIONS[ext])
+                    if structure and self.cache and mtime > 0:
+                        try:
+                            self.cache.put(structure, mtime, sha)
+                        except Exception:
+                            pass
+
                 if structure and not structure.is_minified:
                     results.append(structure)
                     scanned_count += 1
@@ -114,23 +147,33 @@ class AstScanner:
             if scanned_count >= self.max_files:
                 break
 
+        # Prune deleted files from cache and commit
+        if self.cache:
+            try:
+                if active_rel_paths:
+                    self.cache.prune_missing(active_rel_paths)
+                self.cache.commit()
+            except Exception:
+                pass
+
         return results
 
-    def _parse_file(self, full_path: Path, rel_path: str, language: str) -> Optional[FileStructure]:
+    def _parse_file(self, full_path: Path, rel_path: str, language: str) -> Tuple[Optional[FileStructure], str]:
         try:
             stat = full_path.stat()
             if stat.st_size > MAX_FILE_SIZE_BYTES or stat.st_size == 0:
-                return None
+                return None, ""
             content = full_path.read_text(encoding='utf-8', errors='replace')
+            sha = hashlib.sha256(content.encode('utf-8')).hexdigest()
         except Exception:
-            return None
+            return None, ""
 
         lines = content.splitlines()
         total_lines = len(lines)
         if total_lines == 1 and len(content) > 300:
-            return FileStructure(path=str(full_path), relative_path=rel_path, language=language, is_minified=True)
+            return FileStructure(path=str(full_path), relative_path=rel_path, language=language, is_minified=True), sha
         elif total_lines > 1 and (len(content) / total_lines) > 250:
-            return FileStructure(path=str(full_path), relative_path=rel_path, language=language, is_minified=True)
+            return FileStructure(path=str(full_path), relative_path=rel_path, language=language, is_minified=True), sha
 
         stem_lower = full_path.stem.lower()
         is_entry = any(entry == stem_lower or f"{entry}." in rel_path.lower() for entry in self.ENTRY_POINT_NAMES)
@@ -148,7 +191,7 @@ class AstScanner:
         else:
             self._parse_regex(content, structure, language)
 
-        return structure
+        return structure, sha
 
     def _parse_python(self, content: str, structure: FileStructure):
         try:

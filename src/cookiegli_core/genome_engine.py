@@ -250,9 +250,10 @@ class GenomeEngine:
         'Unittest': ['unittest.TestCase', 'self.assertEqual'],
     }
 
-    def __init__(self, root_path: str):
+    def __init__(self, root_path: str, use_cache: bool = True):
         self.root_path = Path(root_path).resolve()
-        self.scanner = AstScanner(str(self.root_path))
+        self.use_cache = use_cache
+        self.scanner = AstScanner(str(self.root_path), use_cache=self.use_cache)
 
     def build(self) -> ProjectGenome:
         """Scan project and construct the full ProjectGenome."""

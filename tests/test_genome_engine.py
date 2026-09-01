@@ -30,13 +30,19 @@ class TestGenomeEngine(unittest.TestCase):
             encoding='utf-8'
         )
         (self.root / 'requirements.txt').write_text('fastapi\npydantic\n', encoding='utf-8')
+        self.engine = None
 
     def tearDown(self):
-        self.test_dir.cleanup()
+        if self.engine and self.engine.scanner.cache:
+            self.engine.scanner.cache.close()
+        try:
+            self.test_dir.cleanup()
+        except Exception:
+            pass
 
     def test_build_genome_compact(self):
-        engine = GenomeEngine(str(self.root))
-        genome = engine.build()
+        self.engine = GenomeEngine(str(self.root), use_cache=False)
+        genome = self.engine.build()
 
         self.assertIsNotNone(genome)
         self.assertEqual(genome.dna.total_files, 2)
@@ -50,8 +56,8 @@ class TestGenomeEngine(unittest.TestCase):
         self.assertIn('[API_REGISTRY]', compact)
 
     def test_synthesize_task_context_entity_targeting(self):
-        engine = GenomeEngine(str(self.root))
-        genome = engine.build()
+        self.engine = GenomeEngine(str(self.root), use_cache=False)
+        genome = self.engine.build()
 
         ctx = genome.synthesize_task_context("Refactor AuthService and fix authenticate_jwt error", max_tokens=1200)
 

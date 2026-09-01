@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CookieGli Unified CLI — High-density context genome compressor and Bayesian ROI Darwin memory.
+CookieGli Unified Enterprise CLI — High-density context genome compressor, Monorepo hierarchy, and Bayesian ROI Darwin memory.
 Zero 3rd-party dependencies. 100% Cross-platform (Windows / Linux / macOS).
 """
 
@@ -26,12 +26,12 @@ if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'src'))
 
-from cookiegli_core import AstScanner, GenomeEngine, DarwinMemory, estimate_tokens
+from cookiegli_core import AstScanner, AstCache, GenomeEngine, MonorepoEngine, DarwinMemory, estimate_tokens
 
 
 def cmd_genome_build(args):
     target_path = Path(args.path or '.').resolve()
-    engine = GenomeEngine(str(target_path))
+    engine = GenomeEngine(str(target_path), use_cache=not args.no_cache)
     genome = engine.build()
     compact = genome.to_compact(args.max_tokens)
     tokens = estimate_tokens(compact)
@@ -50,7 +50,7 @@ def cmd_genome_build(args):
 
 def cmd_genome_context(args):
     target_path = Path(args.path or '.').resolve()
-    engine = GenomeEngine(str(target_path))
+    engine = GenomeEngine(str(target_path), use_cache=not args.no_cache)
     genome = engine.build()
     slice_context = genome.synthesize_task_context(args.task, args.max_tokens)
     tokens = estimate_tokens(slice_context)
@@ -60,9 +60,40 @@ def cmd_genome_context(args):
     return 0
 
 
+def cmd_monorepo_build(args):
+    target_path = Path(args.path or '.').resolve()
+    engine = MonorepoEngine(str(target_path), max_files=args.max_files, use_cache=not args.no_cache)
+    monorepo_genome = engine.build()
+    root_compact = monorepo_genome.to_root_compact(args.max_tokens)
+    tokens = estimate_tokens(root_compact)
+
+    print(f"[MONOREPO BUILD] Detected {len(monorepo_genome.packages)} packages across {monorepo_genome.total_files:,} files | ~{tokens} tokens\n")
+    print(root_compact)
+
+    if args.save:
+        save_path = Path(args.save).resolve()
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        save_path.write_text(root_compact, encoding='utf-8')
+        print(f"\n[SAVED] Wrote root cluster genome to: {save_path}")
+
+    return 0
+
+
+def cmd_monorepo_context(args):
+    target_path = Path(args.path or '.').resolve()
+    engine = MonorepoEngine(str(target_path), max_files=args.max_files, use_cache=not args.no_cache)
+    slice_context = engine.synthesize_task_context(args.task, args.max_tokens)
+    tokens = estimate_tokens(slice_context)
+
+    print(f"[MONOREPO CONTEXT] Synthesized multi-tier context ~{tokens} tokens for task: '{args.task}'\n")
+    print(slice_context)
+    return 0
+
+
 def cmd_darwin(args):
-    state_file = args.state or os.path.join(os.getcwd(), '.agents', '.darwin_state.json')
-    memory = DarwinMemory(state_file)
+    state_file = getattr(args, 'state', None) or os.path.join(os.getcwd(), '.agents', '.darwin_state.json')
+    multi_dir = getattr(args, 'multi_dir', None)
+    memory = DarwinMemory(state_file=state_file, multi_file_dir=multi_dir)
 
     if args.action == 'register':
         content = args.content
@@ -73,13 +104,15 @@ def cmd_darwin(args):
         if not content:
             print("error: provide content via argument, --file, or stdin", file=sys.stderr)
             return 1
-        tags = [t.strip() for t in args.tags.split(',')] if args.tags else []
-        artifact = memory.register(args.name, args.type, content, tags=tags)
+        tags = [t.strip() for t in args.tags.split(',')] if getattr(args, 'tags', None) else []
+        scope = getattr(args, 'scope', 'global') or 'global'
+        artifact = memory.register(args.name, args.type, content, scope=scope, tags=tags)
         print(json.dumps({
             'status': 'registered',
             'id': artifact.id,
             'name': artifact.name,
             'type': artifact.artifact_type,
+            'scope': artifact.scope,
             'roi': round(artifact.roi, 3),
             'tags': artifact.tags
         }, indent=2))
@@ -99,12 +132,14 @@ def cmd_darwin(args):
         }, indent=2))
 
     elif args.action == 'search':
-        tags = [t.strip() for t in args.tags.split(',')] if args.tags else None
-        results = memory.search(query=args.query or "", tags=tags)
+        tags = [t.strip() for t in args.tags.split(',')] if getattr(args, 'tags', None) else None
+        scope = getattr(args, 'scope', None)
+        results = memory.search(query=args.query or "", scope=scope, tags=tags)
         output = [{
             'id': a.id,
             'name': a.name,
             'type': a.artifact_type,
+            'scope': a.scope,
             'roi': round(a.roi, 3),
             'uses': a.use_count,
             'tags': a.tags,
@@ -116,16 +151,19 @@ def cmd_darwin(args):
         res = memory.evolve(
             roi_threshold=args.threshold,
             max_artifacts=args.max_capacity,
-            decay_rate=args.decay
+            decay_rate=args.decay,
+            half_life_days=args.half_life
         )
         print(json.dumps(res, indent=2))
 
     elif args.action == 'list':
-        active = memory.get_active(args.type)
+        scope = getattr(args, 'scope', None)
+        active = memory.get_active(args.type, scope=scope)
         output = [{
             'id': a.id,
             'name': a.name,
             'type': a.artifact_type,
+            'scope': a.scope,
             'roi': round(a.roi, 3),
             'uses': a.use_count,
             'smoothed_sr': f"{a.smoothed_success_rate:.0%}",
@@ -135,7 +173,8 @@ def cmd_darwin(args):
         print(json.dumps(output, indent=2, ensure_ascii=False))
 
     elif args.action == 'sync':
-        summary = memory.to_markdown_summary(args.max_tokens)
+        scope = getattr(args, 'scope', None)
+        summary = memory.to_markdown_summary(args.max_tokens, scope=scope)
         agents_file = Path(args.agents_file or os.path.join(os.getcwd(), '.agents', 'AGENTS.md'))
         if agents_file.exists():
             text = agents_file.read_text(encoding='utf-8')
@@ -170,13 +209,35 @@ def main():
     g_build.add_argument('path', nargs='?', default='.', help="Target project root directory")
     g_build.add_argument('--max-tokens', type=int, default=1500, help="Maximum genome token budget")
     g_build.add_argument('--save', default='.agents/GENOME.md', help="Save genome markdown path")
+    g_build.add_argument('--no-cache', action='store_true', help="Disable SQLite incremental cache")
     g_build.set_defaults(func=cmd_genome_build)
 
     g_ctx = g_subs.add_parser('context', help="Synthesize task-relevant context")
     g_ctx.add_argument('task', help="Task description")
     g_ctx.add_argument('path', nargs='?', default='.', help="Target project root directory")
     g_ctx.add_argument('--max-tokens', type=int, default=1200, help="Maximum synthesized context tokens")
+    g_ctx.add_argument('--no-cache', action='store_true', help="Disable SQLite incremental cache")
     g_ctx.set_defaults(func=cmd_genome_context)
+
+    # Monorepo parser
+    p_mono = subparsers.add_parser('monorepo', help="Hierarchical monorepo enterprise genome commands")
+    m_subs = p_mono.add_subparsers(dest='action', required=True)
+
+    m_build = m_subs.add_parser('build', help="Build Tier-1 root monorepo cluster genome")
+    m_build.add_argument('path', nargs='?', default='.', help="Monorepo root directory")
+    m_build.add_argument('--max-tokens', type=int, default=400, help="Maximum root genome token budget")
+    m_build.add_argument('--max-files', type=int, default=20000, help="Maximum files to scan across monorepo")
+    m_build.add_argument('--save', default='.agents/GENOME.md', help="Save path for root genome")
+    m_build.add_argument('--no-cache', action='store_true', help="Disable SQLite incremental cache")
+    m_build.set_defaults(func=cmd_monorepo_build)
+
+    m_ctx = m_subs.add_parser('context', help="Synthesize multi-tier context across monorepo packages")
+    m_ctx.add_argument('task', help="Task description")
+    m_ctx.add_argument('path', nargs='?', default='.', help="Monorepo root directory")
+    m_ctx.add_argument('--max-tokens', type=int, default=1200, help="Maximum tokens for combined context slice")
+    m_ctx.add_argument('--max-files', type=int, default=20000, help="Maximum files to scan")
+    m_ctx.add_argument('--no-cache', action='store_true', help="Disable SQLite incremental cache")
+    m_ctx.set_defaults(func=cmd_monorepo_context)
 
     # Darwin parser
     p_darwin = subparsers.add_parser('darwin', help="Darwin ROI-based memory evolution commands")
@@ -187,9 +248,11 @@ def main():
     d_reg.add_argument('name', help="Artifact name")
     d_reg.add_argument('type', choices=['pattern', 'lesson', 'skill', 'tool'], help="Artifact type")
     d_reg.add_argument('content', nargs='?', default='', help="Content / lesson")
+    d_reg.add_argument('--scope', default='global', help="Domain scope / namespace (e.g. backend.auth)")
     d_reg.add_argument('--tags', help="Comma-separated tags (e.g. auth,security,db)")
     d_reg.add_argument('--file', help="Read content from file")
     d_reg.add_argument('--state', help="State JSON file path")
+    d_reg.add_argument('--multi-dir', help="Multi-file storage directory")
     d_reg.set_defaults(func=cmd_darwin)
 
     # use
@@ -197,34 +260,43 @@ def main():
     d_use.add_argument('artifact_id', help="Target artifact ID")
     d_use.add_argument('success', nargs='?', default='true', choices=['true', 'false', 'True', 'False', '1', '0'], help="Usage outcome (true/false)")
     d_use.add_argument('--state', help="State JSON file path")
+    d_use.add_argument('--multi-dir', help="Multi-file storage directory")
     d_use.set_defaults(func=cmd_darwin)
 
     # search
     d_search = d_subs.add_parser('search', help="Search active artifacts")
     d_search.add_argument('--query', default='', help="Search query string")
+    d_search.add_argument('--scope', help="Domain namespace filter")
     d_search.add_argument('--tags', help="Comma-separated tags")
     d_search.add_argument('--state', help="State JSON file path")
+    d_search.add_argument('--multi-dir', help="Multi-file storage directory")
     d_search.set_defaults(func=cmd_darwin)
 
     # list
     d_list = d_subs.add_parser('list', help="List active artifacts")
     d_list.add_argument('type', nargs='?', choices=['pattern', 'lesson', 'skill', 'tool'], help="Artifact type filter")
+    d_list.add_argument('--scope', help="Domain namespace filter")
     d_list.add_argument('--state', help="State JSON file path")
+    d_list.add_argument('--multi-dir', help="Multi-file storage directory")
     d_list.set_defaults(func=cmd_darwin)
 
     # evolve
     d_evolve = d_subs.add_parser('evolve', help="Evolve memory pool (decay and prune)")
     d_evolve.add_argument('--threshold', type=float, default=0.3, help="ROI prune threshold")
     d_evolve.add_argument('--max-capacity', type=int, default=50, help="Max active capacity")
-    d_evolve.add_argument('--decay', type=float, default=0.95, help="Decay rate")
+    d_evolve.add_argument('--decay', type=float, default=0.95, help="Generational decay rate")
+    d_evolve.add_argument('--half-life', type=float, default=None, help="Temporal half-life decay in days (e.g. 30)")
     d_evolve.add_argument('--state', help="State JSON file path")
+    d_evolve.add_argument('--multi-dir', help="Multi-file storage directory")
     d_evolve.set_defaults(func=cmd_darwin)
 
     # sync
     d_sync = d_subs.add_parser('sync', help="Sync Darwin memory to .agents/AGENTS.md")
     d_sync.add_argument('--agents-file', help="Path to AGENTS.md")
+    d_sync.add_argument('--scope', help="Sync only specific domain scope")
     d_sync.add_argument('--max-tokens', type=int, default=500, help="Max token budget")
     d_sync.add_argument('--state', help="State JSON file path")
+    d_sync.add_argument('--multi-dir', help="Multi-file storage directory")
     d_sync.set_defaults(func=cmd_darwin)
 
     args = parser.parse_args()
