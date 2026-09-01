@@ -50,18 +50,17 @@ Whenever you solve a non-trivial bug, resolve a compilation error, or discover a
 - **Auto-Persist Learning**: Automatically append the learned rule into the workspace's `.agents/AGENTS.md` under the markers:
   ```markdown
   <!-- darwin:learnings:start -->
-  ### 🧬 Darwin Learned Patterns & Best Practices
-  - [PATTERN/LESSON] **Title** (ROI: 0.95, SR: 100%): Concrete actionable principle.
-  <!-- darwin:learnings:end -->
+### 🧬 Darwin Learned Patterns & Best Practices
+- [PATTERN] **e2e_pattern** `[auth, test]` (ROI: 0.50, SR: 67%): Always verify tokens in integration tests
+- [PATTERN] **e2e_pattern** `[auth, test]` (ROI: 0.33, SR: 50%): Always verify tokens in integration tests
+<!-- darwin:learnings:end -->
   ```
 - **Permanent Knowledge Compounding**: All future agent sessions in this workspace automatically inherit and follow these lessons, preventing repetitive mistakes forever.
 
 <!-- darwin:learnings:start -->
 ### 🧬 Darwin Learned Patterns & Best Practices
-- [LESSON] **Windows Shell Safety** (ROI: 1.00, SR: 100%): Tuyệt đối không gọi các lệnh Unix shell ngoài (`date -u`, `2>/dev/null`, `grep | head`) qua `os.popen()` hoặc `subprocess` trên Windows vì sẽ gây treo tiến trình (hang). Sử dụng pure Python stdlib (`datetime`, `pathlib`, `ast`).
-- [PATTERN] **Bayesian Smoothed ROI** (ROI: 0.96, SR: 100%): Sử dụng Laplace smoothing (success + 1)/(total + 2) để tránh việc biến dạng điểm ROI khi số lượt dùng còn quá ít.
-- [PATTERN] **Capacity Pruning Algorithm** (ROI: 0.95, SR: 100%): Khi cắt tỉa pool `max_artifacts`, phải ưu tiên bảo vệ `protect_recent` nhưng vẫn đảm bảo tổng số item active không vượt quá `max_artifacts` bằng cách tỉa item có ROI thấp nhất trong nhóm non-protected trước.
-- [PATTERN] **Atomic File Persistence** (ROI: 0.94, SR: 100%): Ghi dữ liệu vào file tạm cùng thư mục rồi `os.replace` để bảo đảm file JSON state không bao giờ bị hỏng giữa chừng.
+- [PATTERN] **e2e_pattern** `[auth, test]` (ROI: 0.50, SR: 67%): Always verify tokens in integration tests
+- [PATTERN] **e2e_pattern** `[auth, test]` (ROI: 0.33, SR: 50%): Always verify tokens in integration tests
 <!-- darwin:learnings:end -->
 
 ---

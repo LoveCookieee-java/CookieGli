@@ -1,10 +1,10 @@
-# PROJECT GENOME (2026-09-01T16:11:37Z) | hash:5d3df24979
+# PROJECT GENOME (2026-09-01T16:46:19Z) | hash:cba62548e8
 
 [ARCHITECTURE_DNA]
 langs: Python(8)
 modules: cli, src, tests
 build_test: build=custom | test=unittest/pytest
-metrics: 8 files, 1,439 lines
+metrics: 8 files, 1,481 lines
 
 [DEPENDENCY_MATRIX]
 external: cookiegli_core
@@ -25,10 +25,10 @@ classes:
   • class PatternStandards [methods: to_compact] [src/cookiegli_core/genome_engine.py:106]
   • class EvolutionHotspots [methods: to_compact] [src/cookiegli_core/genome_engine.py:125]
 functions:
-  • def cmd_genome_build(args) [cli/cookiegli.py:20]
-  • def cmd_genome_context(args) [cli/cookiegli.py:39]
-  • def cmd_darwin(args) [cli/cookiegli.py:51]
-  • def main() [cli/cookiegli.py:149]
+  • def cmd_genome_build(args) [cli/cookiegli.py:32]
+  • def cmd_genome_context(args) [cli/cookiegli.py:51]
+  • def cmd_darwin(args) [cli/cookiegli.py:63]
+  • def main() [cli/cookiegli.py:161]
   • def estimate_tokens(text: str) -> int [src/cookiegli_core/darwin_memory.py:17]
   • def estimate_tokens(text: str) -> int [src/cookiegli_core/genome_engine.py:20] - Accurate token estimate for code/markdow
 
@@ -37,4 +37,6 @@ conventions: snake_case-functions, PascalCase-classes, type-annotated
 
 [EVOLUTION_HOTSPOTS]
 recent_changes:
-  • 5ccc648 feat: CookieGli v2.0.0 â€” Enterprise context genome
+  • 79fcc0d feat(agents): update mandatory autonomous ruleset fo
+  • c175388 feat(skills): upgrade cookiegli-core skill with ultr
+  • 5ea2c69 fix(docs): replace Mermaid with high-resolution vect

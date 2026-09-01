@@ -10,6 +10,18 @@ import os
 import sys
 from pathlib import Path
 
+# Ensure UTF-8 output streams on Windows
+if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 # Add src to path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'src'))
@@ -168,22 +180,52 @@ def main():
 
     # Darwin parser
     p_darwin = subparsers.add_parser('darwin', help="Darwin ROI-based memory evolution commands")
-    p_darwin.add_argument('action', choices=['register', 'use', 'evolve', 'list', 'search', 'sync'])
-    p_darwin.add_argument('name', nargs='?', help="Artifact name (register)")
-    p_darwin.add_argument('type', nargs='?', choices=['pattern', 'lesson', 'skill', 'tool'], help="Artifact type")
-    p_darwin.add_argument('content', nargs='?', help="Content / lesson (register)")
-    p_darwin.add_argument('--tags', help="Comma-separated tags (e.g. auth,security,db)")
-    p_darwin.add_argument('--query', help="Search query string (search)")
-    p_darwin.add_argument('--file', help="Read content from file")
-    p_darwin.add_argument('--success', choices=['true', 'false'], default='true', help="Usage outcome (use)")
-    p_darwin.add_argument('--artifact_id', help="Target artifact ID (use)")
-    p_darwin.add_argument('--threshold', type=float, default=0.3, help="ROI prune threshold")
-    p_darwin.add_argument('--max-capacity', type=int, default=50, help="Max active artifacts capacity")
-    p_darwin.add_argument('--decay', type=float, default=0.95, help="Generational decay multiplier")
-    p_darwin.add_argument('--max-tokens', type=int, default=500, help="Markdown summary token budget")
-    p_darwin.add_argument('--state', help="State JSON file path")
-    p_darwin.add_argument('--agents-file', help="Target AGENTS.md file for sync")
-    p_darwin.set_defaults(func=cmd_darwin)
+    d_subs = p_darwin.add_subparsers(dest='action', required=True)
+
+    # register
+    d_reg = d_subs.add_parser('register', help="Register a learned artifact")
+    d_reg.add_argument('name', help="Artifact name")
+    d_reg.add_argument('type', choices=['pattern', 'lesson', 'skill', 'tool'], help="Artifact type")
+    d_reg.add_argument('content', nargs='?', default='', help="Content / lesson")
+    d_reg.add_argument('--tags', help="Comma-separated tags (e.g. auth,security,db)")
+    d_reg.add_argument('--file', help="Read content from file")
+    d_reg.add_argument('--state', help="State JSON file path")
+    d_reg.set_defaults(func=cmd_darwin)
+
+    # use
+    d_use = d_subs.add_parser('use', help="Record usage of an artifact")
+    d_use.add_argument('artifact_id', help="Target artifact ID")
+    d_use.add_argument('success', nargs='?', default='true', choices=['true', 'false', 'True', 'False', '1', '0'], help="Usage outcome (true/false)")
+    d_use.add_argument('--state', help="State JSON file path")
+    d_use.set_defaults(func=cmd_darwin)
+
+    # search
+    d_search = d_subs.add_parser('search', help="Search active artifacts")
+    d_search.add_argument('--query', default='', help="Search query string")
+    d_search.add_argument('--tags', help="Comma-separated tags")
+    d_search.add_argument('--state', help="State JSON file path")
+    d_search.set_defaults(func=cmd_darwin)
+
+    # list
+    d_list = d_subs.add_parser('list', help="List active artifacts")
+    d_list.add_argument('type', nargs='?', choices=['pattern', 'lesson', 'skill', 'tool'], help="Artifact type filter")
+    d_list.add_argument('--state', help="State JSON file path")
+    d_list.set_defaults(func=cmd_darwin)
+
+    # evolve
+    d_evolve = d_subs.add_parser('evolve', help="Evolve memory pool (decay and prune)")
+    d_evolve.add_argument('--threshold', type=float, default=0.3, help="ROI prune threshold")
+    d_evolve.add_argument('--max-capacity', type=int, default=50, help="Max active capacity")
+    d_evolve.add_argument('--decay', type=float, default=0.95, help="Decay rate")
+    d_evolve.add_argument('--state', help="State JSON file path")
+    d_evolve.set_defaults(func=cmd_darwin)
+
+    # sync
+    d_sync = d_subs.add_parser('sync', help="Sync Darwin memory to .agents/AGENTS.md")
+    d_sync.add_argument('--agents-file', help="Path to AGENTS.md")
+    d_sync.add_argument('--max-tokens', type=int, default=500, help="Max token budget")
+    d_sync.add_argument('--state', help="State JSON file path")
+    d_sync.set_defaults(func=cmd_darwin)
 
     args = parser.parse_args()
     return args.func(args)
