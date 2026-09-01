@@ -44,28 +44,27 @@ Mọi phiên làm việc kéo dài của AI Agent (Antigravity, Claude Code, Cur
 
 ## 2. Kiến Trúc Cốt Lõi (Core Architecture)
 
-```mermaid
-flowchart TD
-    A["Mã Nguồn Dự Án (Project Files)"] --> B["AstScanner: Phân Tích AST Đa Ngôn Ngữ"]
-    B --> C["Bộ Lọc Tối Giản (Minification & Size Guard)"]
-    C --> D["GenomeEngine: Nén 5 Khối Cấu Trúc"]
-    
-    D --> D1["1. ArchitectureDNA (Ngôn ngữ & Khung làm việc)"]
-    D --> D2["2. DependencyMatrix (Thư viện & Điểm nóng)"]
-    D --> D3["3. ApiRegistry (Classes & Signatures)"]
-    D --> D4["4. PatternStandards (Quy ước & Async)"]
-    D --> D5["5. EvolutionHotspots (Git & Active TODOs)"]
-    
-    D1 --> E["GENOME.md (Nén Cô Đọng <= 600 Tokens)"]
-    D2 --> E
-    D3 --> E
-    D4 --> E
-    D5 --> E
-    
-    E --> F["AI Agent Tiếp Nhận & Khởi Tạo Ngữ Cảnh"]
-    F --> G["System Autopilot (Chu Trình Kiểm Thử Khép Kín)"]
-    G --> H["DarwinMemory (Lưu Trữ Bài Học Theo Bayesian ROI)"]
-    H --> I["Cơ Sở Tri Thức Tiến Hóa Dài Hạn"]
+<p align="center">
+  <img src="assets/architecture.svg" alt="CookieGli Core Architecture" width="100%">
+</p>
+
+```text
+[ Project Source Code (~30k - 100k Tokens) ]
+                     │
+                     ▼
+[ Stage 1: AstScanner ] ── (Minification & Size Guard)
+                     │
+                     ▼
+[ Stage 2: GenomeEngine ] ── (5 Blocks: DNA, Deps, APIs, Patterns, Hotspots)
+                     │
+                     ▼
+[ Output: GENOME.md ] ── (≤ 500 - 600 Tokens | 98.5% Context Compression)
+                     │
+                     ▼
+[ AI Agent Continuous Loop ] ── (System Autopilot Test & Regression Verification)
+                     │
+                     ▼
+[ DarwinMemory Evolution ] ── (Bayesian Smoothed ROI & Atomic Persistence)
 ```
 
 ---
