@@ -1,0 +1,34 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Local Darwin state & temporary artifacts
+.darwin_state.json
+*.state.json
+scratch/
+tmp/
+temp/
+
+# Environment & Secrets
+.env
+.env.*
+*.local
+*.secret
+*.pem
+*.key
+*.token
+
+# IDE & Editor caches
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Test & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
