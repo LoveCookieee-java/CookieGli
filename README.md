@@ -45,26 +45,27 @@ Mọi phiên làm việc kéo dài của AI Agent (Antigravity, Claude Code, Cur
 ## 2. Kiến Trúc Cốt Lõi (Core Architecture)
 
 ```mermaid
-graph TD
-    A[Mã Nguồn Dự Án / Project Files] --> B[AstScanner: Deep Multi-Language AST]
-    B -->|Minification & Size Filter| C[Structural File Entities]
-    C --> D[GenomeEngine: 5 Architectural Blocks]
+flowchart TD
+    A["Mã Nguồn Dự Án (Project Files)"] --> B["AstScanner: Phân Tích AST Đa Ngôn Ngữ"]
+    B --> C["Bộ Lọc Tối Giản (Minification & Size Guard)"]
+    C --> D["GenomeEngine: Nén 5 Khối Cấu Trúc"]
     
-    subgraph GENOME_BLOCKS [5 Khối Kiến Trúc Tối Giản]
-        D1[ArchitectureDNA: Ngôn ngữ, Frameworks, Entrypoints]
-        D2[DependencyMatrix: Package ngoài & Hotspots fan-in]
-        D3[ApiRegistry: Public Classes & Signatures]
-        D4[PatternStandards: Quy ước đặt tên & Async paradigms]
-        D5[EvolutionHotspots: Git Commits & Active TODOs]
-    end
+    D --> D1["1. ArchitectureDNA (Ngôn ngữ & Khung làm việc)"]
+    D --> D2["2. DependencyMatrix (Thư viện & Điểm nóng)"]
+    D --> D3["3. ApiRegistry (Classes & Signatures)"]
+    D --> D4["4. PatternStandards (Quy ước & Async)"]
+    D --> D5["5. EvolutionHotspots (Git & Active TODOs)"]
     
-    D --> D1 & D2 & D3 & D4 & D5
-    D1 & D2 & D3 & D4 & D5 --> E[GENOME.md: ~500 Tokens]
+    D1 --> E["GENOME.md (Nén Cô Đọng <= 600 Tokens)"]
+    D2 --> E
+    D3 --> E
+    D4 --> E
+    D5 --> E
     
-    E --> F[AI Agent Onboarding / Task Synthesis]
-    F -->|Thực thi & Sửa lỗi| G[System Autopilot: Continuous Test Loop]
-    G -->|Trích xuất bài học thành công| H[DarwinMemory: Bayesian Smoothed ROI]
-    H -->|Atomic Persistence & Decay Pruning| I[Learned Knowledge Base]
+    E --> F["AI Agent Tiếp Nhận & Khởi Tạo Ngữ Cảnh"]
+    F --> G["System Autopilot (Chu Trình Kiểm Thử Khép Kín)"]
+    G --> H["DarwinMemory (Lưu Trữ Bài Học Theo Bayesian ROI)"]
+    H --> I["Cơ Sở Tri Thức Tiến Hóa Dài Hạn"]
 ```
 
 ---
