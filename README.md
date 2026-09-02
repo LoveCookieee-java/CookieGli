@@ -6,10 +6,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.1.0%20(Enterprise)-blue.svg?style=flat-square" alt="Version 2.1.0">
+  <img src="https://img.shields.io/badge/version-2.2.0%20(Universal)-blue.svg?style=flat-square" alt="Version 2.2.0">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.9-blue.svg?style=flat-square" alt="Python 3.9+">
-  <img src="https://img.shields.io/badge/tests-19%2F19%20passing%20(100%25)-brightgreen.svg?style=flat-square" alt="Tests Passing">
+  <img src="https://img.shields.io/badge/tests-32%2F32%20passing%20(100%25)-brightgreen.svg?style=flat-square" alt="Tests Passing">
   <img src="https://img.shields.io/badge/monorepo-supported-purple.svg?style=flat-square" alt="Monorepo Supported">
+  <img src="https://img.shields.io/badge/mcp-supported-darkgreen.svg?style=flat-square" alt="MCP Supported">
   <img src="https://img.shields.io/badge/dependencies-zero%20(stdlib%20only)-orange.svg?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg?style=flat-square" alt="Cross Platform">
   <img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="MIT License">
@@ -20,7 +21,7 @@
 ## 📑 Mục Lục (Table of Contents)
 - [1. Tại Sao Lại Là CookieGli? (Why CookieGli?)](#1-tại-sao-lại-là-cookiegli-why-cookiegli)
 - [2. Kiến Trúc Cốt Lõi (Core Architecture)](#2-kiến-trúc-cốt-lõi-core-architecture)
-- [3. Tính Năng Doanh Nghiệp (Enterprise Monorepo & Scalability)](#3-tính-năng-doanh-nghiệp-enterprise-monorepo--scalability)
+- [3. Tính Năng Doanh Nghiệp (Enterprise Monorepo, Universal Sync & MCP)](#3-tính-năng-doanh-nghiệp-enterprise-monorepo-scalability)
 - [4. Bảng So Sánh Hiệu Năng (Feature Matrix)](#4-bảng-so-sánh-hiệu-năng-feature-matrix)
 - [5. Cài Đặt & Khởi Động Nhanh (Quick Start)](#5-cài-đặt--khởi-động-nhanh-quick-start)
 - [6. Hướng Dẫn Lệnh CLI (CLI Command Reference)](#6-hướng-dẫn-lệnh-cli-cli-command-reference)
@@ -89,6 +90,18 @@ Mọi phiên làm việc kéo dài của AI Agent (Antigravity, Claude Code, Cur
 ### 🧠 3. Phân Vùng Tri Thức (Domain Namespacing) & Chu Kỳ Bán Rã ($t_{1/2}$)
 * **Namespaces:** Bài học được gắn nhãn phạm vi cụ thể (`backend.auth`, `frontend.react`, `database`), ngăn chặn hoàn toàn việc áp dụng nhầm quy tắc Frontend vào Backend.
 * **Chu kỳ Bán rã Thời gian:** Điểm ROI tự động giảm dần theo thời gian thực $\text{ROI}(t) = \text{ROI}_0 \times 2^{-\frac{\Delta t}{30\text{ ngày}}}$, tự động đào thải các kinh nghiệm lỗi thời sau nhiều tháng/năm.
+
+### 🌐 4. Bộ Điều Hợp Đa Nền Tảng (Universal Target Adapters)
+Không còn bị giới hạn trong bất kỳ môi trường AI đơn lẻ nào, CookieGli tự động đồng bộ hóa phi phá hủy (non-destructive bounded injection) qua các cặp thẻ HTML comment an toàn:
+* **Claude Code (`CLAUDE.md`)**: Ghim AST Genome tĩnh vào phần đầu file để kích hoạt cơ chế giảm giá **75% – 90% chi phí đọc Prompt Cache** của Claude Fable 5.1 / Opus 5 / Sonnet 5.
+* **OpenAI Codex (`AGENTS.md`)**: Cung cấp khung xương kiến trúc tinh khiết cho GPT-5.3-Codex và các dòng lý luận sâu o3/o4.
+* **Google Antigravity (`.agents/GENOME.md`, `.agents/AGENTS.md`)**: Hỗ trợ chuẩn agentic pipeline và các vòng lặp System Autopilot.
+* **Cursor (`.cursor/rules/*.mdc`, `.cursorrules`) & Windsurf (`.windsurfrules`)**: Tự động sinh rule định tuyến file.
+
+### 🔌 5. Universal Model Context Protocol (MCP) Server
+Tích hợp sẵn máy chủ MCP chuẩn STDIO JSON-RPC 2.0 (thuần Python stdlib, zero 3rd-party dependencies):
+* Khởi chạy tức thì bằng lệnh: `python cli/cookiegli.py mcp --root .`
+* Cung cấp các công cụ chuẩn cho mọi client MCP: `cookiegli_get_genome`, `cookiegli_synthesize_context`, `cookiegli_darwin_record`, `cookiegli_darwin_search`, `cookiegli_sync`.
 
 ---
 
@@ -181,6 +194,16 @@ Tất cả thao tác được quản lý qua một file duy nhất `cli/cookiegl
 | `evolve` | `[--threshold 0.3] [--max-capacity 50] [--decay 0.95] [--half-life DAYS]` | Áp dụng generational decay và chu kỳ bán rã thời gian thực. |
 | `sync` | `[--agents-file PATH] [--scope SCOPE] [--max-tokens 500]` | Tự động đồng bộ bảng bài học vào file `.agents/AGENTS.md`. |
 
+### 🌐 Universal Target Sync (`cookiegli sync ...`)
+| Lệnh | Tham Số | Mô Tả |
+|---|---|---|
+| `sync` | `[--target TARGET] [--root PATH] [--no-genome] [--no-darwin]` | Đồng bộ phi phá hủy vào `claude`, `codex`, `antigravity`, `cursor`, `windsurf`, hoặc `all`. |
+
+### 🔌 Universal MCP Server (`cookiegli mcp ...`)
+| Lệnh | Tham Số | Mô Tả |
+|---|---|---|
+| `mcp` | `[--root PATH]` | Khởi chạy máy chủ MCP chuẩn JSON-RPC 2.0 qua STDIO cho mọi AI client. |
+
 ---
 
 ## 7. Mô Hình Toán Học Tiến Hóa ROI (Bayesian ROI Dynamics)
@@ -219,6 +242,13 @@ python -m unittest discover -s tests -v
 ```
 
 ```
+test_invalid_target_raises (test_adapters.TestTargetManager.test_invalid_target_raises) ... ok
+test_sync_all_broadcast (test_adapters.TestTargetManager.test_sync_all_broadcast) ... ok
+test_sync_antigravity (test_adapters.TestTargetManager.test_sync_antigravity) ... ok
+test_sync_claude_non_destructive (test_adapters.TestTargetManager.test_sync_claude_non_destructive) ... ok
+test_sync_codex (test_adapters.TestTargetManager.test_sync_codex) ... ok
+test_sync_cursor (test_adapters.TestTargetManager.test_sync_cursor) ... ok
+test_sync_windsurf (test_adapters.TestTargetManager.test_sync_windsurf) ... ok
 test_minified_file_guard (test_ast_scanner.TestAstScanner.test_minified_file_guard) ... ok
 test_scan_python_file (test_ast_scanner.TestAstScanner.test_scan_python_file) ... ok
 test_scan_typescript_and_arrow_functions (test_ast_scanner.TestAstScanner.test_scan_typescript_and_arrow_functions) ... ok
@@ -232,6 +262,12 @@ test_markdown_summary (test_darwin_memory.TestDarwinMemory.test_markdown_summary
 test_search_by_query_and_tags (test_darwin_memory.TestDarwinMemory.test_search_by_query_and_tags) ... ok
 test_build_genome_compact (test_genome_engine.TestGenomeEngine.test_build_genome_compact) ... ok
 test_synthesize_task_context_entity_targeting (test_genome_engine.TestGenomeEngine.test_synthesize_task_context_entity_targeting) ... ok
+test_initialize (test_mcp_server.TestCookieGliMcpServer.test_initialize) ... ok
+test_tool_call_darwin_record_and_search (test_mcp_server.TestCookieGliMcpServer.test_tool_call_darwin_record_and_search) ... ok
+test_tool_call_get_genome (test_mcp_server.TestCookieGliMcpServer.test_tool_call_get_genome) ... ok
+test_tool_call_sync (test_mcp_server.TestCookieGliMcpServer.test_tool_call_sync) ... ok
+test_tools_list (test_mcp_server.TestCookieGliMcpServer.test_tools_list) ... ok
+test_unknown_method (test_mcp_server.TestCookieGliMcpServer.test_unknown_method) ... ok
 test_discover_packages (test_monorepo_engine.TestMonorepoEngine.test_discover_packages) ... ok
 test_monorepo_build_and_token_budget (test_monorepo_engine.TestMonorepoEngine.test_monorepo_build_and_token_budget) ... ok
 test_monorepo_synthesize_task_context (test_monorepo_engine.TestMonorepoEngine.test_monorepo_synthesize_task_context) ... ok
@@ -240,9 +276,9 @@ test_namespaced_domain_filtering (test_temporal_darwin.TestTemporalDarwin.test_n
 test_temporal_half_life_decay (test_temporal_darwin.TestTemporalDarwin.test_temporal_half_life_decay) ... ok
 
 ----------------------------------------------------------------------
-Ran 19 tests in 0.900s
+Ran 32 tests in 0.755s
 
-OK (19/19 Tests Pass 100%)
+OK (32/32 Tests Pass 100%)
 ```
 
 ---
