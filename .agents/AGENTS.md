@@ -52,9 +52,12 @@ Whenever you solve a non-trivial bug, resolve a compilation error, or discover a
 - **Auto-Persist Learning**: Automatically append the learned rule into the workspace's `.agents/AGENTS.md` under the markers:
   ```markdown
   <!-- darwin:learnings:start -->
-  ### 🧬 Darwin Learned Patterns & Best Practices
-  - [PATTERN/LESSON] **Title** `[scope]` (ROI: 0.95, SR: 100%): Concrete actionable principle.
-  <!-- darwin:learnings:end -->
+### 🧬 Darwin Learned Patterns & Best Practices
+<!-- darwin:learnings:start -->
+### 🧬 Darwin Learned Patterns & Best Practices
+- *No verified patterns evolved yet. Run tasks to build evolutionary memory.*
+<!-- darwin:learnings:end -->
+<!-- darwin:learnings:end -->
   ```
 - **Temporal Half-Life Decay**: Patterns decay smoothly over time ($\text{ROI}(t) = \text{ROI}_0 \times 2^{-\Delta t / 30\text{d}}$), automatically pruning obsolete patterns over months/years.
 - **Permanent Knowledge Compounding**: All future agent sessions in this workspace automatically inherit and follow these lessons, preventing repetitive mistakes forever.
@@ -66,11 +69,3 @@ Whenever you solve a non-trivial bug, resolve a compilation error, or discover a
 - [PATTERN] **Capacity Pruning Algorithm** `[memory]` (ROI: 0.95, SR: 100%): Khi cắt tỉa pool `max_artifacts`, phải ưu tiên bảo vệ `protect_recent` nhưng vẫn đảm bảo tổng số item active không vượt quá `max_artifacts` bằng cách tỉa item có ROI thấp nhất trong nhóm non-protected trước.
 - [PATTERN] **Atomic File Persistence** `[storage]` (ROI: 0.94, SR: 100%): Ghi dữ liệu vào file tạm cùng thư mục rồi `os.replace` để bảo đảm file JSON state không bao giờ bị hỏng giữa chừng.
 - [PATTERN] **Monorepo Tiered Resolution** `[enterprise]` (ROI: 0.95, SR: 100%): Với monorepo lớn, nạp Tier-1 Root Cluster Map (<300 tokens) trước, sau đó chỉ nạp Tier-2 Leaf Genome của package mục tiêu để giữ context luôn <600 tokens.
-<!-- darwin:learnings:end -->
-
----
-
-## 5. Clean, Concise, and Frictionless Communication
-- **No Verbose Preambles**: Skip conversational filler (e.g. "Sure, I can help with that", "As an AI...").
-- **Direct & Action-Oriented**: State what was done, show the concise code diff / file link, and provide verifiable test execution proof.
-- **Clickable File Links**: Always use markdown links with `file:///` format for modified files and symbols.

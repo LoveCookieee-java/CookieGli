@@ -1,3 +1,9 @@
+# OpenAI Codex & Agent Instructions
+
+## Architecture Context
+<!-- cookiegli:genome:start -->
+### 🧬 Repository AST Genome
+```
 # PROJECT GENOME (2026-09-02T16:46:19Z) | hash:9a859b4f18
 
 [ARCHITECTURE_DNA]
@@ -45,3 +51,14 @@ recent_changes:
   • 9329d75 docs: update CookieGli README for v2.2.0 universal s
   • f0ad687 feat(universal): add multi-target adapters and pure-
   • 1e9a9ea feat(agents): synchronize mandatory enterprise rules
+```
+<!-- cookiegli:genome:end -->
+
+## Operational Priors
+<!-- cookiegli:darwin:start -->
+### 🧬 System Priors & Darwin Learnings
+<!-- darwin:learnings:start -->
+### 🧬 Darwin Learned Patterns & Best Practices
+- *No verified patterns evolved yet. Run tasks to build evolutionary memory.*
+<!-- darwin:learnings:end -->
+<!-- cookiegli:darwin:end -->
