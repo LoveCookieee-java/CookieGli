@@ -8,8 +8,10 @@ from .cache_db import AstCache
 from .genome_engine import GenomeEngine, ProjectGenome, estimate_tokens
 from .monorepo_engine import MonorepoEngine, MonorepoGenome, PackageNode
 from .darwin_memory import DarwinMemory, LearnedArtifact
+from .adapters import TargetManager
+from .mcp_server import CookieGliMcpServer
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 __all__ = [
     "AstScanner",
     "AstCache",
@@ -22,5 +24,7 @@ __all__ = [
     "PackageNode",
     "DarwinMemory",
     "LearnedArtifact",
+    "TargetManager",
+    "CookieGliMcpServer",
     "estimate_tokens",
 ]

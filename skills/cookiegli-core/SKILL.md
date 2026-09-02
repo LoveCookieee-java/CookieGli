@@ -118,6 +118,18 @@ Whenever you resolve a non-trivial bug, overcome a tricky compiler error, or dis
 
 ---
 
+---
+
+### Protocol 5: Universal Multi-Target Synchronization & MCP Integration
+CookieGli 2.2 Enterprise is a universal token-economy engine for all modern AI coding agents:
+- **Claude Code**: Syncs compact AST Genome and Darwin lessons into `CLAUDE.md` to trigger Anthropic's 75%–90% prompt cache read discount (Claude Fable 5.1 / Opus 5 / Sonnet 5).
+- **OpenAI Codex**: Syncs into `AGENTS.md` to preserve reasoning purity and prevent token waste in GPT-5.3-Codex, GPT-5.6 Sol, and o3/o4.
+- **Google Antigravity**: Syncs to `.agents/GENOME.md` and `.agents/AGENTS.md`.
+- **Cursor & Windsurf**: Syncs to `.cursor/rules/cookiegli_context.mdc`, `.cursorrules`, and `.windsurfrules`.
+- **MCP Server**: Zero-dependency stdio JSON-RPC 2.0 server providing `cookiegli_get_genome`, `cookiegli_synthesize_context`, `cookiegli_darwin_record`, and `cookiegli_sync`.
+
+---
+
 ## 🛠️ CLI Quick Reference
 
 ```powershell
@@ -130,15 +142,23 @@ python cli/cookiegli.py monorepo build . --save .agents/GENOME.md
 # 3. Synthesize multi-tier context across monorepo packages
 python cli/cookiegli.py monorepo context "Fix OAuth token validation in auth-service"
 
-# 4. Register a learned pattern with domain scope
+# 4. Universal multi-target synchronization (Claude, Codex, Antigravity, Cursor, Windsurf)
+python cli/cookiegli.py sync --target all --root .
+python cli/cookiegli.py sync --target claude
+python cli/cookiegli.py sync --target codex
+
+# 5. Launch pure-Python stdlib Model Context Protocol (MCP) server
+python cli/cookiegli.py mcp --root .
+
+# 6. Register a learned pattern with domain scope
 python cli/cookiegli.py darwin register jwt_guard pattern "Validate expiration before decode" --scope "backend.auth" --tags "auth,security"
 
-# 5. Search patterns by scope or tags
+# 7. Search patterns by scope or tags
 python cli/cookiegli.py darwin search --scope "backend" --tags "auth" --query "JWT"
 
-# 6. Evolve pool with temporal half-life decay (30 days)
+# 8. Evolve pool with temporal half-life decay (30 days)
 python cli/cookiegli.py darwin evolve --threshold 0.3 --max-capacity 50 --half-life 30
 
-# 7. Sync Darwin memory directly to .agents/AGENTS.md
+# 9. Sync Darwin memory directly to .agents/AGENTS.md
 python cli/cookiegli.py darwin sync
 ```

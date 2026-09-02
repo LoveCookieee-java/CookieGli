@@ -26,7 +26,16 @@ if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / 'src'))
 
-from cookiegli_core import AstScanner, AstCache, GenomeEngine, MonorepoEngine, DarwinMemory, estimate_tokens
+from cookiegli_core import (
+    AstScanner,
+    AstCache,
+    GenomeEngine,
+    MonorepoEngine,
+    DarwinMemory,
+    TargetManager,
+    CookieGliMcpServer,
+    estimate_tokens,
+)
 
 
 def cmd_genome_build(args):
@@ -197,6 +206,45 @@ def cmd_darwin(args):
     return 0
 
 
+def cmd_sync(args):
+    root_path = Path(args.root or '.').resolve()
+    genome_text = None
+    darwin_text = None
+
+    if not args.no_genome:
+        engine = GenomeEngine(str(root_path), use_cache=not args.no_cache)
+        genome = engine.build()
+        genome_text = genome.to_compact(args.max_genome_tokens)
+
+    if not args.no_darwin:
+        st = args.state
+        if not st:
+            default_st = root_path / ".cookiegli" / "darwin_state.json"
+            if default_st.exists():
+                st = str(default_st)
+            else:
+                agent_st = root_path / ".agents" / ".darwin_state.json"
+                if agent_st.exists():
+                    st = str(agent_st)
+        darwin = DarwinMemory(state_file=st, multi_file_dir=args.multi_dir)
+        darwin_text = darwin.to_markdown_summary(max_tokens=args.max_darwin_tokens)
+
+    res = TargetManager.sync(args.target, root_path, genome_text=genome_text, darwin_text=darwin_text)
+    print(f"[SYNC COMPLETED] Target: {args.target}")
+    for target_name, files in res.items():
+        print(f"  • {target_name.upper()}:")
+        for f in files:
+            print(f"    - {f}")
+    return 0
+
+
+def cmd_mcp(args):
+    root_path = Path(args.root or '.').resolve()
+    server = CookieGliMcpServer(workspace_root=root_path)
+    server.run_stdio()
+    return 0
+
+
 def main():
     parser = argparse.ArgumentParser(prog='cookiegli', description="CookieGli Context Genome & Darwin Memory Toolkit")
     subparsers = parser.add_subparsers(dest='command', required=True)
@@ -298,6 +346,24 @@ def main():
     d_sync.add_argument('--state', help="State JSON file path")
     d_sync.add_argument('--multi-dir', help="Multi-file storage directory")
     d_sync.set_defaults(func=cmd_darwin)
+
+    # Universal Target Sync parser
+    p_sync = subparsers.add_parser('sync', help="Synchronize Genome and Darwin memory across AI agent formats")
+    p_sync.add_argument('--target', choices=['claude', 'codex', 'antigravity', 'cursor', 'windsurf', 'all'], default='all', help="Target platform to sync")
+    p_sync.add_argument('--root', default='.', help="Target project root directory")
+    p_sync.add_argument('--max-genome-tokens', type=int, default=1500, help="Max token budget for Genome")
+    p_sync.add_argument('--max-darwin-tokens', type=int, default=500, help="Max token budget for Darwin")
+    p_sync.add_argument('--no-genome', action='store_true', help="Skip Genome synchronization")
+    p_sync.add_argument('--no-darwin', action='store_true', help="Skip Darwin memory synchronization")
+    p_sync.add_argument('--no-cache', action='store_true', help="Disable SQLite incremental cache")
+    p_sync.add_argument('--state', help="Darwin state JSON file path")
+    p_sync.add_argument('--multi-dir', help="Darwin multi-file storage directory")
+    p_sync.set_defaults(func=cmd_sync)
+
+    # Universal MCP Server parser
+    p_mcp = subparsers.add_parser('mcp', help="Run pure Python stdlib MCP server over STDIO")
+    p_mcp.add_argument('--root', default='.', help="Workspace root directory")
+    p_mcp.set_defaults(func=cmd_mcp)
 
     args = parser.parse_args()
     return args.func(args)
