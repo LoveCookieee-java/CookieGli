@@ -1,288 +1,255 @@
 # 🍪 CookieGli
 
 <p align="center">
-  <strong>Enterprise-Grade Context Genome Compressor & Bayesian Darwinian Memory for Autonomous AI Agents</strong><br>
-  <em>Zero 3rd-Party Dependencies • Pure Python stdlib • 100% Cross-Platform (Windows / Linux / macOS)</em>
+  <strong>Bộ công cụ nén ngữ cảnh kiến trúc và quản lý kinh nghiệm cho AI Coding Agents</strong><br>
+  <em>Thuần Python stdlib • Không cài thêm thư viện phụ thuộc • Chạy nhẹ nhàng trên Windows, Linux, macOS</em>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.2.0%20(Universal)-blue.svg?style=flat-square" alt="Version 2.2.0">
+  <img src="https://img.shields.io/badge/version-2.2.0-blue.svg?style=flat-square" alt="Version 2.2.0">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.9-blue.svg?style=flat-square" alt="Python 3.9+">
-  <img src="https://img.shields.io/badge/tests-32%2F32%20passing%20(100%25)-brightgreen.svg?style=flat-square" alt="Tests Passing">
-  <img src="https://img.shields.io/badge/monorepo-supported-purple.svg?style=flat-square" alt="Monorepo Supported">
-  <img src="https://img.shields.io/badge/mcp-supported-darkgreen.svg?style=flat-square" alt="MCP Supported">
-  <img src="https://img.shields.io/badge/dependencies-zero%20(stdlib%20only)-orange.svg?style=flat-square" alt="Zero Dependencies">
-  <img src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational.svg?style=flat-square" alt="Cross Platform">
+  <img src="https://img.shields.io/badge/tests-32%2F32%20passing-brightgreen.svg?style=flat-square" alt="Tests Passing">
+  <img src="https://img.shields.io/badge/monorepo-ready-purple.svg?style=flat-square" alt="Monorepo Ready">
+  <img src="https://img.shields.io/badge/mcp-ready-darkgreen.svg?style=flat-square" alt="MCP Ready">
+  <img src="https://img.shields.io/badge/dependencies-0%20(stdlib%20only)-orange.svg?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="MIT License">
 </p>
 
 ---
 
 ## 📑 Mục Lục (Table of Contents)
-- [1. Tại Sao Lại Là CookieGli? (Why CookieGli?)](#1-tại-sao-lại-là-cookiegli-why-cookiegli)
-- [2. Kiến Trúc Cốt Lõi (Core Architecture)](#2-kiến-trúc-cốt-lõi-core-architecture)
-- [3. Tính Năng Doanh Nghiệp (Enterprise Monorepo, Universal Sync & MCP)](#3-tính-năng-doanh-nghiệp-enterprise-monorepo-scalability)
-- [4. Bảng So Sánh Hiệu Năng (Feature Matrix)](#4-bảng-so-sánh-hiệu-năng-feature-matrix)
-- [5. Cài Đặt & Khởi Động Nhanh (Quick Start)](#5-cài-đặt--khởi-động-nhanh-quick-start)
-- [6. Hướng Dẫn Lệnh CLI (CLI Command Reference)](#6-hướng-dẫn-lệnh-cli-cli-command-reference)
-- [7. Mô Hình Toán Học Tiến Hóa ROI (Bayesian ROI Dynamics)](#7-mô-hình-toán-học-tiến-hóa-roi-bayesian-roi-dynamics)
-- [8. Quy Trình Vận Hành Cho AI Agent (.agents Standard)](#8-quy-trình-vận-hành-cho-ai-agent-agents-standard)
-- [9. Kiểm Thử & Nghiệm Thu (Test Suite & Verification)](#9-kiểm-thử--nghiệm-thu-test-suite--verification)
-- [10. Giấy Phép (License)](#10-giấy-phép-license)
+- [1. CookieGli Giải Quyết Vấn Đề Gì? (Why CookieGli?)](#1-cookiegli-giải-quyết-vấn-đề-gì-why-cookiegli)
+- [2. Cách Hoạt Động (How It Works)](#2-cách-hoạt-động-how-it-works)
+- [3. Các Tính Năng Hữu Ích (Key Features)](#3-các-tính-năng-hữu-ích-key-features)
+- [4. Bảng So Sánh Nhanh (Feature Matrix)](#4-bảng-so-sánh-nhanh-feature-matrix)
+- [5. Cài Đặt & Dùng Nhanh (Quick Start)](#5-cài-đặt--dùng-nhanh-quick-start)
+- [6. Tra Cứu Lệnh CLI (CLI Reference)](#6-tra-cứu-lệnh-cli-cli-reference)
+- [7. Cơ Chế Tính Điểm Hữu Ích (ROI Dynamics)](#7-cơ-chế-tính-điểm-hữu-ích-roi-dynamics)
+- [8. Hướng Dẫn Dành Cho AI Agent (.agents Standard)](#8-hướng-dẫn-dành-cho-ai-agent-agents-standard)
+- [9. Kiểm Thử (Tests & Verification)](#9-kiểm-thử-tests--verification)
+- [10. Đóng Góp & Giấy Phép (License)](#10-đóng-góp--giấy-phép-license)
 
 ---
 
-## 1. Tại Sao Lại Là CookieGli? (Why CookieGli?)
+## 1. CookieGli Giải Quyết Vấn Đề Gì? (Why CookieGli?)
 
-Mọi phiên làm việc kéo dài của AI Agent (Antigravity, Claude Code, Cursor, Windsurf, v.v.) đều đối mặt với kẻ thù lớn nhất: **Context Window Bloat (Phình to ngữ cảnh)**.
-- Khi nạp toàn bộ cây thư mục và mã nguồn thô, Agent tiêu tốn từ **30.000 đến 100.000 tokens** ngay từ lượt tương tác đầu tiên, gây suy giảm trí nhớ dài hạn, tăng độ trễ và chi phí API cực lớn.
-- Các công cụ tóm tắt truyền thống thường chỉ dùng regex bề nổi, dễ bỏ sót cấu trúc hàm hiện đại, hoặc phụ thuộc vào các lệnh shell không tương thích hệ điều hành dẫn đến treo tiến trình trên Windows.
+Khi làm việc với các AI agent hỗ trợ lập trình (Claude Code, OpenAI Codex, Antigravity, Cursor, Windsurf...), một vấn đề rất hay gặp phải là **phình to ngữ cảnh (Context Bloat)**:
+* Nạp cả cây thư mục hoặc đọc nhiều file mã nguồn thô làm tiêu tốn từ vài chục ngàn đến cả trăm ngàn token ngay từ những câu hỏi đầu tiên. Việc này vừa tốn chi phí API, vừa làm mô hình dễ bị loãng thông tin và nhanh quên ngữ cảnh quan trọng.
+* Sau khi AI giúp bạn sửa xong một lỗi hóc búa, sang phiên làm việc tiếp theo agent thường không nhớ cách xử lý đó và rất dễ lặp lại cùng một sai lầm.
 
-**CookieGli mang lại giải pháp đột phá:**
-1. **High-Density AST Scanner:** Quét và trích xuất cấu trúc AST thực tế (Class hierarchy, Methods, Types, Async functions, Arrow functions, Dependencies) cho Python, JavaScript, TypeScript, Go, Rust, Java, C/C++.
-2. **Genome Compression (< 600 tokens):** Nén toàn bộ codebase thành bản đồ kiến trúc cô đọng **≤ 600 tokens**, sẵn sàng nạp tức thì trong 0.1 giây.
-3. **Monorepo Multi-Tier Hierarchy:** Phân cấp bản đồ Monorepo thành Tier-1 Root Cluster Map (<300 tokens) và Tier-2 Package Leaf Genomes (<500 tokens).
-4. **Incremental SQLite Cache:** Tích hợp SQLite WAL mode để quét vi sai các repo 100k+ files trong `< 10 ms`.
-5. **Bayesian Darwin Memory:** Lưu giữ và tiến hóa các bài học kinh nghiệm (Failure-to-Success learnings) bằng thuật toán Laplace smoothing, phân vùng phạm vi (Domain Namespaces) và chu kỳ bán rã thời gian ($t_{1/2}$).
-6. **Zero Runtime Overhead & 100% Pure Python:** Hoạt động an toàn tuyệt đối trên Windows, Linux và macOS, không phụ thuộc vào bất kỳ thư viện bên ngoài nào.
+**CookieGli được tạo ra như một công cụ hỗ trợ nhỏ gọn để giải quyết hai việc đó:**
+1. **Nén bản đồ kiến trúc (< 600 tokens):** Phân tích các class, hàm, phương thức chính thành một bản đồ súc tích để nạp cho AI trong chớp mắt.
+2. **Hỗ trợ Monorepo theo phân cấp:** Chia bản đồ thành tầng tổng quan (Root Map) và từng gói nhỏ (Package Leaf), làm việc ở gói nào chỉ nạp gói đó.
+3. **Bộ nhớ đệm SQLite nhẹ nhàng:** Lưu hash file để nhận biết thay đổi, file nào chưa sửa thì bỏ qua không quét lại.
+4. **Ghi nhớ bài học thực chiến (Darwin Memory):** Giữ lại các quy tắc đã kiểm chứng, tự động giảm dần điểm những kinh nghiệm lâu ngày không dùng đến.
+5. **Đồng bộ với nhiều loại agent:** Tự động tạo định dạng phù hợp cho Claude Code, Codex, Antigravity, Cursor, Windsurf hoặc chạy thành máy chủ MCP chuẩn.
+6. **Thuần Python stdlib:** Không cần cài thêm thư viện phụ thuộc (`zero pip install`), chạy an toàn trên Windows, Linux và macOS.
 
 ---
 
-## 2. Kiến Trúc Cốt Lõi (Core Architecture)
+## 2. Cách Hoạt Động (How It Works)
 
 <p align="center">
   <img src="assets/architecture.svg" alt="CookieGli Core Architecture" width="100%">
 </p>
 
 ```text
-[ Project Source Code (~30k - 100k Tokens) ]
-                     │
-                     ▼
-[ Stage 1: Incremental AstScanner ] ── (SQLite WAL Cache & Size Guard)
-                     │
-                     ▼
-[ Stage 2: GenomeEngine / MonorepoEngine ] ── (Tier-1 Root & Tier-2 Leaf Maps)
-                     │
-                     ▼
-[ Output: GENOME.md ] ── (≤ 500 - 600 Tokens | 98.5% Context Compression)
-                     │
-                     ▼
-[ AI Agent Continuous Loop ] ── (System Autopilot Test & Regression Verification)
-                     │
-                     ▼
-[ Namespaced DarwinMemory ] ── (Bayesian ROI, Scopes & Temporal Half-Life Decay)
+[ Mã nguồn dự án (~30k - 100k Tokens) ]
+                 │
+                 ▼
+[ Bước 1: AstScanner ] ── Lưu cache SQLite WAL nhẹ nhàng
+                 │
+                 ▼
+[ Bước 2: GenomeEngine / MonorepoEngine ] ── Lập bản đồ phân cấp
+                 │
+                 ▼
+[ Kết quả: GENOME.md ] ── ≤ 500 - 600 Tokens (tiết kiệm ~96% token)
+                 │
+                 ▼
+[ AI Agent làm việc & kiểm thử ] ── Test tự động bảo đảm chất lượng
+                 │
+                 ▼
+[ DarwinMemory ] ── Lưu kinh nghiệm, tính điểm hữu ích và đào thải tự nhiên
 ```
 
 ---
 
-## 3. Tính Năng Doanh Nghiệp (Enterprise Monorepo & Scalability)
+## 3. Các Tính Năng Hữu Ích (Key Features)
 
-### 🏢 1. Phân Cấp Monorepo Nhiều Tầng (Hierarchical Monorepo)
-Đối với các kho mã nguồn khổng lồ chứa hàng chục package/dịch vụ con (`packages/*`, `apps/*`, `services/*`):
-* **Tier-1 Root Cluster Map:** Tóm tắt toàn cảnh các Package, loại ngôn ngữ và quan hệ phụ thuộc liên gói trong **`< 300 tokens`**.
-* **Tier-2 Package Leaf Genome:** Mỗi Package duy trì một bản Genome riêng biệt trong **`< 500 tokens`**.
-* **Định vị chính xác:** Khi Agent nhận task sửa lỗi ở module nào, hệ thống chỉ nạp đúng ngữ cảnh của module đó, giữ vững mức tiêu thụ **`≤ 600 tokens/turn`** dù dự án có hàng triệu dòng code!
+### 📁 1. Hỗ Trợ Dự Án Monorepo Nhiều Gói (Hierarchical Monorepo)
+Với các repository chia thành nhiều package/service con (`packages/*`, `apps/*`, `services/*`):
+* **Root Map (~300 tokens):** Cung cấp cái nhìn tổng quan về danh sách các gói và quan hệ phụ thuộc cơ bản giữa chúng.
+* **Package Leaf (~500 tokens):** Mỗi gói giữ một bản tóm tắt kiến trúc riêng biệt.
+* Khi bạn yêu cầu AI sửa một module cụ thể, hệ thống chỉ nạp đúng phần liên quan thay vì đọc cả dự án, giúp tiết kiệm đáng kể token cho mỗi lượt chat.
 
-### ⚡ 2. Quét Vi Sai Tăng Lượng (Incremental SQLite Cache)
-* Tự động lưu cấu trúc AST và băm SHA-256 vào database SQLite siêu nhẹ `.cookiegli/ast_cache.db` ở chế độ **WAL (Write-Ahead Logging)**.
-* Khi sửa 1 file trong kho 10.000 file, scanner chỉ phân tích lại đúng 1 file đó trong **`< 5 miligiây`**.
+### ⚡ 2. Bộ Nhớ Đệm SQLite Nhẹ Nhàng (Incremental Cache)
+* Lưu cấu trúc và mã băm SHA-256 vào file database SQLite nhỏ gọn (`.cookiegli/ast_cache.db`).
+* Khi bạn thay đổi 1 vài file, bộ quét chỉ phân tích lại đúng các file đó trong vài mili-giây, không quét lại toàn bộ kho mã nguồn.
 
-### 🧠 3. Phân Vùng Tri Thức (Domain Namespacing) & Chu Kỳ Bán Rã ($t_{1/2}$)
-* **Namespaces:** Bài học được gắn nhãn phạm vi cụ thể (`backend.auth`, `frontend.react`, `database`), ngăn chặn hoàn toàn việc áp dụng nhầm quy tắc Frontend vào Backend.
-* **Chu kỳ Bán rã Thời gian:** Điểm ROI tự động giảm dần theo thời gian thực $\text{ROI}(t) = \text{ROI}_0 \times 2^{-\frac{\Delta t}{30\text{ ngày}}}$, tự động đào thải các kinh nghiệm lỗi thời sau nhiều tháng/năm.
+### 🧠 3. Ghi Nhớ Kinh Nghiệm & Đào Thải Tự Nhiên (Darwin Memory)
+* **Gắn nhãn phạm vi (Scope):** Các bài học được gắn nhãn cụ thể (`backend.auth`, `frontend.react`, `database`) để tránh áp dụng nhầm chỗ.
+* **Tự giảm điểm theo thời gian:** Những bài học hữu ích, dùng thường xuyên sẽ giữ điểm cao; những kinh nghiệm lâu ngày không đụng đến sẽ tự giảm dần độ ưu tiên để nhường chỗ cho kiến thức mới.
 
-### 🌐 4. Bộ Điều Hợp Đa Nền Tảng (Universal Target Adapters)
-Không còn bị giới hạn trong bất kỳ môi trường AI đơn lẻ nào, CookieGli tự động đồng bộ hóa phi phá hủy (non-destructive bounded injection) qua các cặp thẻ HTML comment an toàn:
-* **Claude Code (`CLAUDE.md`)**: Ghim AST Genome tĩnh vào phần đầu file để kích hoạt cơ chế giảm giá **75% – 90% chi phí đọc Prompt Cache** của Claude Fable 5.1 / Opus 5 / Sonnet 5.
-* **OpenAI Codex (`AGENTS.md`)**: Cung cấp khung xương kiến trúc tinh khiết cho GPT-5.3-Codex và các dòng lý luận sâu o3/o4.
-* **Google Antigravity (`.agents/GENOME.md`, `.agents/AGENTS.md`)**: Hỗ trợ chuẩn agentic pipeline và các vòng lặp System Autopilot.
-* **Cursor (`.cursor/rules/*.mdc`, `.cursorrules`) & Windsurf (`.windsurfrules`)**: Tự động sinh rule định tuyến file.
+### 🔄 4. Đồng Bộ Với Các AI Agent Phổ Biến (Target Adapters)
+Tự động đồng bộ bản đồ kiến trúc và bài học kinh nghiệm vào đúng định dạng mà agent của bạn sử dụng:
+* **Claude Code (`CLAUDE.md`)**: Hỗ trợ tận dụng cơ chế Prompt Cache của Claude.
+* **OpenAI Codex (`AGENTS.md`)**: Cung cấp cấu trúc rõ ràng cho các mô hình lập trình của OpenAI.
+* **Google Antigravity (`.agents/GENOME.md`, `.agents/AGENTS.md`)**: Chuẩn hóa pipeline tự động hóa.
+* **Cursor & Windsurf (`.cursorrules`, `.windsurfrules`)**: Tự động sinh chỉ dẫn điều hướng mã nguồn.
 
-### 🔌 5. Universal Model Context Protocol (MCP) Server
-Tích hợp sẵn máy chủ MCP chuẩn STDIO JSON-RPC 2.0 (thuần Python stdlib, zero 3rd-party dependencies):
-* Khởi chạy tức thì bằng lệnh: `python cli/cookiegli.py mcp --root .`
-* Cung cấp các công cụ chuẩn cho mọi client MCP: `cookiegli_get_genome`, `cookiegli_synthesize_context`, `cookiegli_darwin_record`, `cookiegli_darwin_search`, `cookiegli_sync`.
+### 🔌 5. Máy Chủ MCP Chuẩn (Model Context Protocol)
+Tích hợp sẵn server MCP chạy qua giao thức STDIO JSON-RPC 2.0:
+* Khởi chạy đơn giản: `python cli/cookiegli.py mcp`
+* Cung cấp sẵn các công cụ để agent gọi: lấy genome dự án, tổng hợp ngữ cảnh theo task, lưu kinh nghiệm, tìm kiếm bài học và đồng bộ cấu hình.
 
 ---
 
-## 4. Bảng So Sánh Hiệu Năng (Feature Matrix)
+## 4. Bảng So Sánh Nhanh (Feature Matrix)
 
-| Tiêu Chí / Tính Năng | Quét Mã Nguồn Thô (Raw Dump) | Bộ Tóm Tắt Regex Nông | 🍪 CookieGli Enterprise |
+| Tiêu chí | Đọc file thô truyền thống | Bộ lọc regex đơn giản | 🍪 CookieGli |
 |---|---|---|---|
-| **Lượng Token tiêu thụ** | 30.000 – 100.000 tokens | 5.000 – 10.000 tokens | **300 – 600 tokens (Đo đạc thực tế)** |
-| **Độ chính xác bóc tách AST** | 0% (phải đọc toàn bộ) | Thấp (bỏ sót TS Interfaces & Arrow) | **Rất cao (Python AST + Multi-paradigm Regex)** |
-| **Hỗ trợ Monorepo lớn** | ❌ Không | ❌ Không | ✅ **Hierarchical Multi-Tier Cluster Trees** |
-| **Bộ nhớ đệm vi sai** | ❌ Không | ❌ Không | ✅ **SQLite WAL Cache (<5ms Delta Scan)** |
-| **Tương thích Đa Nền Tảng** | Khá | Kém (dễ xung đột shell Unix/Windows) | ✅ **100% Native Safe (Pure Python stdlib)** |
-| **Bảo vệ chống Minified Files** | ❌ Không | ❌ Không | ✅ **Tự động lọc file `.min.js` & long lines** |
-| **Mô hình tính điểm ROI** | ❌ Không có | ❌ Không có | ✅ **Bayesian Laplace ROI + Temporal Half-Life** |
-| **Phân vùng phạm vi tri thức** | N/A | N/A | ✅ **Domain Namespaces (`scope="backend.auth"`)** |
-| **An toàn lưu trữ (Persistence)** | N/A | Ghi đè file trực tiếp | ✅ **Atomic File Swap & Multi-File Mode** |
+| **Lượng token tiêu thụ** | 30.000 – 100.000 tokens | 5.000 – 10.000 tokens | **300 – 600 tokens** |
+| **Phân tích cấu trúc hàm/class** | ❌ Đọc thủ công | ⚠️ Dễ sót cú pháp mới | ✅ **Phân tích cây AST thực tế** |
+| **Hỗ trợ Monorepo** | ❌ Không | ❌ Không | ✅ **Chia tầng Root & Package** |
+| **Bộ nhớ đệm quét nhanh** | ❌ Quét lại từ đầu | ❌ Không có | ✅ **SQLite WAL (<5ms khi sửa file)** |
+| **Tương thích Windows / Linux / macOS** | Phụ thuộc tool | Dễ lỗi lệnh shell Unix | ✅ **100% Python stdlib an toàn** |
+| **Lọc file nén / minified** | ❌ Dễ đọc nhầm | ❌ Không có | ✅ **Tự nhận diện và bỏ qua** |
+| **Ghi nhớ bài học fix bug** | ❌ Quên sau mỗi phiên | ❌ Không có | ✅ **Darwin Memory + Giảm điểm tự nhiên** |
+| **Độ phức tạp cài đặt** | N/A | Cần nhiều package | ✅ **Zero Dependency (chạy ngay)** |
 
 ---
 
-## 5. Cài Đặt & Khởi Động Nhanh (Quick Start)
+## 5. Cài Đặt & Dùng Nhanh (Quick Start)
 
-### Yêu Cầu Hệ Thống:
-* Python $\ge 3.9$ (đã kiểm thử trên Python 3.9, 3.10, 3.11, 3.12, 3.13, 3.14).
-* **Zero 3rd-party dependencies** — Không cần `pip install` bất cứ gói nào!
+### Yêu cầu:
+* Python $\ge 3.9$ (đã test kỹ từ Python 3.9 đến 3.14).
+* Không cần cài thêm bất kỳ thư viện ngoài nào (`zero dependencies`).
 
-### Cài Đặt:
+### Tải dự án về:
 ```bash
 git clone https://github.com/LoveCookieee-java/CookieGli.git
 cd CookieGli
 ```
 
-### 1. Sinh Bản Đồ Genome (Single Project hoặc Monorepo):
+### 1. Tạo bản đồ kiến trúc dự án (Genome):
 ```bash
-# Cho dự án đơn lẻ:
+# Cho dự án thông thường:
 python cli/cookiegli.py genome build . --save .agents/GENOME.md
 
-# Cho Monorepo nhiều package:
+# Cho Monorepo có nhiều gói:
 python cli/cookiegli.py monorepo build . --save .agents/GENOME.md
 ```
 
-### 2. Tổng Hợp Ngữ Cảnh Cho Task Cụ Thể:
+### 2. Lấy ngữ cảnh cho một công việc cụ thể:
 ```bash
-# Định vị ngữ cảnh trong Monorepo:
-python cli/cookiegli.py monorepo context "Refactor AuthService in packages/auth-service"
+# Trích xuất đúng các class/hàm liên quan đến task:
+python cli/cookiegli.py genome context "Sửa hàm xác thực token người dùng"
 ```
 
-### 3. Quản Lý Tri Thức Tiến Hóa Darwin:
+### 3. Lưu và quản lý kinh nghiệm (Darwin Memory):
 ```bash
-# Đăng ký một bài học kinh nghiệm kèm Domain Scope
-python cli/cookiegli.py darwin register jwt_guard pattern "Always check expiration before token decode" --scope "backend.auth" --tags "auth,security"
+# Lưu một bài học mới kèm nhãn:
+python cli/cookiegli.py darwin register jwt_check pattern "Luôn kiểm tra hạn dùng exp trước khi giải mã token" --scope "backend.auth" --tags "auth,security"
 
-# Ghi nhận kết quả sử dụng
+# Ghi nhận kết quả khi áp dụng (thành công = true, thất bại = false):
 python cli/cookiegli.py darwin use <artifact_id> true
 
-# Tìm kiếm bài học theo scope & tag
+# Tìm kiếm bài học:
 python cli/cookiegli.py darwin search --scope "backend" --tags "auth"
 
-# Chạy chu trình tiến hóa kèm chu kỳ bán rã 30 ngày
-python cli/cookiegli.py darwin evolve --half-life 30 --threshold 0.3
-
-# Đồng bộ trực tiếp vào AGENTS.md
+# Tự động cập nhật bài học vào file .agents/AGENTS.md:
 python cli/cookiegli.py darwin sync
 ```
 
----
-
-## 6. Hướng Dẫn Lệnh CLI (CLI Command Reference)
-
-Tất cả thao tác được quản lý qua một file duy nhất `cli/cookiegli.py`:
-
-### 🧬 Genome Engine (`cookiegli genome ...`)
-| Lệnh | Tham Số | Mô Tả |
-|---|---|---|
-| `build` | `[path] [--max-tokens 1500] [--save PATH] [--no-cache]` | Quét và sinh bản đồ nén Genome của codebase. |
-| `context` | `<task> [path] [--max-tokens 1200] [--no-cache]` | Trích xuất lát cắt ngữ cảnh theo từ khóa và Class/Method mục tiêu. |
-
-### 🏢 Monorepo Engine (`cookiegli monorepo ...`)
-| Lệnh | Tham Số | Mô Tả |
-|---|---|---|
-| `build` | `[path] [--max-tokens 400] [--max-files 20000] [--save PATH]` | Quét và sinh bản đồ Root Cluster Genome (<300 tokens) cho Monorepo. |
-| `context` | `<task> [path] [--max-tokens 1200] [--max-files 20000]` | Tổng hợp lát cắt ngữ cảnh đa tầng (Root Map + Package Leaf + Target AST). |
-
-### 🧠 Darwin Memory (`cookiegli darwin ...`)
-| Lệnh | Tham Số | Mô Tả |
-|---|---|---|
-| `register` | `<name> <type> <content> [--scope SCOPE] [--tags TAGS]` | Đăng ký bài học mới (`pattern`, `lesson`, `skill`, `tool`). |
-| `use` | `<artifact_id> [true\|false]` | Ghi nhận lượt sử dụng thành công hoặc thất bại. |
-| `search` | `[--query TEXT] [--scope SCOPE] [--tags TAGS]` | Tìm kiếm nhanh bài học theo nội dung, scope hoặc tag. |
-| `list` | `[type] [--scope SCOPE]` | Liệt kê tất cả các bài học đang hoạt động theo điểm ROI. |
-| `evolve` | `[--threshold 0.3] [--max-capacity 50] [--decay 0.95] [--half-life DAYS]` | Áp dụng generational decay và chu kỳ bán rã thời gian thực. |
-| `sync` | `[--agents-file PATH] [--scope SCOPE] [--max-tokens 500]` | Tự động đồng bộ bảng bài học vào file `.agents/AGENTS.md`. |
-
-### 🌐 Universal Target Sync (`cookiegli sync ...`)
-| Lệnh | Tham Số | Mô Tả |
-|---|---|---|
-| `sync` | `[--target TARGET] [--root PATH] [--no-genome] [--no-darwin]` | Đồng bộ phi phá hủy vào `claude`, `codex`, `antigravity`, `cursor`, `windsurf`, hoặc `all`. |
-
-### 🔌 Universal MCP Server (`cookiegli mcp ...`)
-| Lệnh | Tham Số | Mô Tả |
-|---|---|---|
-| `mcp` | `[--root PATH]` | Khởi chạy máy chủ MCP chuẩn JSON-RPC 2.0 qua STDIO cho mọi AI client. |
+### 4. Đồng bộ nhanh sang các môi trường khác:
+```bash
+# Đồng bộ một lượt cho tất cả các agent (Claude, Codex, Antigravity, Cursor, Windsurf):
+python cli/cookiegli.py sync --target all --root .
+```
 
 ---
 
-## 7. Mô Hình Toán Học Tiến Hóa ROI (Bayesian ROI Dynamics)
+## 6. Tra Cứu Lệnh CLI (CLI Reference)
 
-Để tránh hiện tượng điểm ROI bị thổi phồng hoặc suy giảm quá mức khi số lần sử dụng còn ít (Small-sample variance), CookieGli áp dụng công thức **Laplace Smoothing**:
+Mọi thao tác đều thực hiện qua script `cli/cookiegli.py`:
 
-$$\text{SR}_{\text{smooth}} = \frac{\text{Successes} + 1}{\text{Total Uses} + 2}$$
+### 🧬 Genome Engine (`cookiegli genome`)
+| Lệnh | Tham số | Ý nghĩa |
+|---|---|---|
+| `build` | `[path] [--max-tokens 1500] [--save PATH] [--no-cache]` | Quét mã nguồn và tạo bản đồ nén kiến trúc. |
+| `context` | `<task> [path] [--max-tokens 1200] [--no-cache]` | Lấy lát cắt ngữ cảnh theo từ khóa công việc. |
 
-Điểm ROI tổng hợp được xác định bởi:
+### 📁 Monorepo Engine (`cookiegli monorepo`)
+| Lệnh | Tham số | Ý nghĩa |
+|---|---|---|
+| `build` | `[path] [--max-tokens 400] [--max-files 20000] [--save PATH]` | Tạo bản đồ tổng quan mức Root cho dự án Monorepo. |
+| `context` | `<task> [path] [--max-tokens 1200] [--max-files 20000]` | Kết hợp ngữ cảnh từ Root Map và Package liên quan. |
 
-$$\text{ROI} = \left(0.7 \times \text{SR}_{\text{smooth}} + 0.3 \times \min\left(\frac{\text{Total Uses}}{5}, 1.0\right)\right) \times 2^{-\frac{\Delta t}{t_{1/2}}}$$
+### 🧠 Darwin Memory (`cookiegli darwin`)
+| Lệnh | Tham số | Ý nghĩa |
+|---|---|---|
+| `register` | `<name> <type> <content> [--scope SCOPE] [--tags TAGS]` | Thêm bài học mới (`pattern`, `lesson`, `skill`, `tool`). |
+| `use` | `<artifact_id> [true\|false]` | Ghi nhận lần sử dụng thành công hoặc thất bại. |
+| `search` | `[--query TEXT] [--scope SCOPE] [--tags TAGS]` | Tìm kiếm bài học theo từ khóa, phạm vi hoặc thẻ. |
+| `list` | `[type] [--scope SCOPE]` | Xem danh sách bài học đang lưu, xếp theo điểm hữu ích. |
+| `evolve` | `[--threshold 0.3] [--max-capacity 50] [--decay 0.95] [--half-life DAYS]` | Chạy chu kỳ giảm điểm bài học ít dùng và dọn bài học điểm thấp. |
+| `sync` | `[--agents-file PATH] [--scope SCOPE] [--max-tokens 500]` | Đẩy các bài học điểm cao vào file `.agents/AGENTS.md`. |
 
-* **Khi mới khởi tạo (0 lần dùng):** $\text{SR} = \frac{0 + 1}{0 + 2} = 0.5 \implies \text{ROI} = 0.35$ (Mức khởi đầu công bằng).
-* **Khi dùng 1 lần thành công (1 lần dùng):** $\text{SR} = \frac{1 + 1}{1 + 2} = 0.67 \implies \text{ROI} = 0.53$ (Không bị thổi lên 1.0).
-* **Khi dùng 5 lần thành công liên tiếp:** $\text{SR} = \frac{5 + 1}{5 + 2} = 0.86 \implies \text{ROI} = 0.90$ (Chứng minh độ tin cậy tuyệt đối).
-* **Chu kỳ Bán rã ($t_{1/2} = 30\text{ ngày}$):** Sau 30 ngày không sử dụng, $\text{ROI}$ tự động giảm còn $\frac{1}{2}$. Sau 60 ngày giảm còn $\frac{1}{4}$ và tự động bị đào thải nếu rơi xuống dưới ngưỡng `0.30`.
+### 🔄 Đồng Bộ Hóa (`cookiegli sync`)
+| Lệnh | Tham số | Ý nghĩa |
+|---|---|---|
+| `sync` | `[--target TARGET] [--root PATH] [--no-genome] [--no-darwin]` | Đồng bộ vào `claude`, `codex`, `antigravity`, `cursor`, `windsurf` hoặc `all`. |
+
+### 🔌 Máy Chủ MCP (`cookiegli mcp`)
+| Lệnh | Tham số | Ý nghĩa |
+|---|---|---|
+| `mcp` | `[--root PATH]` | Khởi động server MCP qua STDIO để các AI tool kết nối. |
 
 ---
 
-## 8. Quy Trình Vận Hành Cho AI Agent (.agents Standard)
+## 7. Cơ Chế Tính Điểm Hữu Ích (ROI Dynamics)
 
-Tệp [`.agents/AGENTS.md`](.agents/AGENTS.md) được thiết kế theo tiêu chuẩn công nghiệp:
-1. **Onboarding First:** Luôn đọc `.agents/GENOME.md` đầu phiên làm việc để nắm 100% bản đồ dự án trong `< 600 tokens`.
-2. **Deduplicate & Line-Range Reads:** Chỉ đọc đúng đoạn code cần sửa bằng `view_file(StartLine, EndLine)` hoặc `grep_search`.
-3. **Continuous Engineering Loop:** Bắt buộc chạy Unit Test trước khi báo cáo hoàn thành. Nếu có bug, tự sửa đến khi Pass 100%.
-4. **Learning Extraction:** Tự động ghi lại bài học thất bại $\rightarrow$ thành công vào bảng tri thức Darwin.
+Để đánh giá một bài học có thực sự đáng tin cậy hay không, CookieGli dùng công thức làm mượt **Laplace Smoothing** kết hợp chu kỳ giảm điểm theo thời gian:
+
+$$\text{Tỷ lệ thành công mượt} = \frac{\text{Số lần thành công} + 1}{\text{Tổng số lần dùng} + 2}$$
+
+$$\text{Điểm ROI} = \left(0.7 \times \text{Tỷ lệ mượt} + 0.3 \times \min\left(\frac{\text{Số lần dùng}}{5}, 1.0\right)\right) \times 2^{-\frac{\Delta t}{t_{1/2}}}$$
+
+**Cách tính này giúp giải quyết 2 việc:**
+1. **Tránh kết luận vội vã:** Một quy tắc mới dùng 1 lần thành công sẽ không bị đẩy điểm lên 100% ngay, mà cần qua vài lần kiểm chứng thực tế để khẳng định độ tin cậy.
+2. **Không để bộ nhớ bị cũ:** Sau một thời gian không đụng đến (mặc định $t_{1/2} = 30$ ngày), điểm bài học sẽ giảm dần. Nếu bài học không còn phù hợp và rớt xuống dưới ngưỡng sàn (`0.30`), nó sẽ được dọn đi để giữ cho bộ nhớ luôn gọn gàng.
 
 ---
 
-## 9. Kiểm Thử & Nghiệm Thu (Test Suite & Verification)
+## 8. Hướng Dẫn Dành Cho AI Agent (.agents Standard)
 
-Toàn bộ hệ thống được bảo vệ bởi **19 bài kiểm thử độc lập**:
+Nếu bạn dùng AI agent tự động, tệp [`.agents/AGENTS.md`](.agents/AGENTS.md) giúp định hướng hành vi:
+1. **Nắm tổng thể trước:** Đọc `.agents/GENOME.md` ở đầu phiên làm việc để hiểu cấu trúc toàn bộ dự án mà chỉ tốn vài trăm token.
+2. **Đọc đúng chỗ cần sửa:** Thay vì nạp cả file lớn, hãy đọc theo phạm vi dòng (`StartLine` / `EndLine`) hoặc dùng công cụ tìm kiếm chuẩn xác.
+3. **Chạy test tự động:** Luôn chạy lại test suite sau khi sửa code để đảm bảo không phát sinh lỗi ngoài ý muốn.
+4. **Đúc kết kinh nghiệm:** Khi giải quyết xong một lỗi hóc búa, tự ghi lại bài học vào bảng Darwin để lần sau không vấp phải.
 
-```powershell
+---
+
+## 9. Kiểm Thử (Tests & Verification)
+
+Dự án đi kèm bộ 32 bài kiểm thử tự động, sử dụng trực tiếp thư viện chuẩn `unittest` của Python (không cần cài pytest hay thư viện phụ trợ):
+
+```bash
 python -m unittest discover -s tests -v
 ```
 
-```
-test_invalid_target_raises (test_adapters.TestTargetManager.test_invalid_target_raises) ... ok
-test_sync_all_broadcast (test_adapters.TestTargetManager.test_sync_all_broadcast) ... ok
-test_sync_antigravity (test_adapters.TestTargetManager.test_sync_antigravity) ... ok
-test_sync_claude_non_destructive (test_adapters.TestTargetManager.test_sync_claude_non_destructive) ... ok
-test_sync_codex (test_adapters.TestTargetManager.test_sync_codex) ... ok
-test_sync_cursor (test_adapters.TestTargetManager.test_sync_cursor) ... ok
-test_sync_windsurf (test_adapters.TestTargetManager.test_sync_windsurf) ... ok
-test_minified_file_guard (test_ast_scanner.TestAstScanner.test_minified_file_guard) ... ok
-test_scan_python_file (test_ast_scanner.TestAstScanner.test_scan_python_file) ... ok
-test_scan_typescript_and_arrow_functions (test_ast_scanner.TestAstScanner.test_scan_typescript_and_arrow_functions) ... ok
-test_cache_miss_on_mtime_change (test_cache_db.TestAstCache.test_cache_miss_on_mtime_change) ... ok
-test_prune_missing_files (test_cache_db.TestAstCache.test_prune_missing_files) ... ok
-test_put_and_get_matching_mtime (test_cache_db.TestAstCache.test_put_and_get_matching_mtime) ... ok
-test_atomic_file_persistence (test_darwin_memory.TestDarwinMemory.test_atomic_file_persistence) ... ok
-test_bayesian_smoothed_roi (test_darwin_memory.TestDarwinMemory.test_bayesian_smoothed_roi) ... ok
-test_capacity_constraint_strict (test_darwin_memory.TestDarwinMemory.test_capacity_constraint_strict) ... ok
-test_markdown_summary (test_darwin_memory.TestDarwinMemory.test_markdown_summary) ... ok
-test_search_by_query_and_tags (test_darwin_memory.TestDarwinMemory.test_search_by_query_and_tags) ... ok
-test_build_genome_compact (test_genome_engine.TestGenomeEngine.test_build_genome_compact) ... ok
-test_synthesize_task_context_entity_targeting (test_genome_engine.TestGenomeEngine.test_synthesize_task_context_entity_targeting) ... ok
-test_initialize (test_mcp_server.TestCookieGliMcpServer.test_initialize) ... ok
-test_tool_call_darwin_record_and_search (test_mcp_server.TestCookieGliMcpServer.test_tool_call_darwin_record_and_search) ... ok
-test_tool_call_get_genome (test_mcp_server.TestCookieGliMcpServer.test_tool_call_get_genome) ... ok
-test_tool_call_sync (test_mcp_server.TestCookieGliMcpServer.test_tool_call_sync) ... ok
-test_tools_list (test_mcp_server.TestCookieGliMcpServer.test_tools_list) ... ok
-test_unknown_method (test_mcp_server.TestCookieGliMcpServer.test_unknown_method) ... ok
-test_discover_packages (test_monorepo_engine.TestMonorepoEngine.test_discover_packages) ... ok
-test_monorepo_build_and_token_budget (test_monorepo_engine.TestMonorepoEngine.test_monorepo_build_and_token_budget) ... ok
-test_monorepo_synthesize_task_context (test_monorepo_engine.TestMonorepoEngine.test_monorepo_synthesize_task_context) ... ok
-test_multi_file_persistence_mode (test_temporal_darwin.TestTemporalDarwin.test_multi_file_persistence_mode) ... ok
-test_namespaced_domain_filtering (test_temporal_darwin.TestTemporalDarwin.test_namespaced_domain_filtering) ... ok
-test_temporal_half_life_decay (test_temporal_darwin.TestTemporalDarwin.test_temporal_half_life_decay) ... ok
-
-----------------------------------------------------------------------
-Ran 32 tests in 0.755s
+```text
+Ran 32 tests in 0.828s
 
 OK (32/32 Tests Pass 100%)
 ```
 
 ---
 
-## 10. Giấy Phép (License)
+## 10. Đóng Góp & Giấy Phép (License)
 
-Dự án được phân phối dưới giấy phép mã nguồn mở [MIT License](LICENSE). Tự do sử dụng, chỉnh sửa và phân phối trong cả dự án cá nhân lẫn thương mại.
+CookieGli là một dự án mã nguồn mở còn mới. Mọi đóng góp, ý kiến phản hồi hoặc báo lỗi qua GitHub Issues / Pull Requests đều rất được trân trọng!
+
+Dự án được phát hành dưới giấy phép mã nguồn mở [MIT License](LICENSE) © 2026 LoveCookieee (KhoaSuperT1). Tự do sử dụng, tùy biến và tích hợp vào các dự án cá nhân hoặc công việc hàng ngày.
+
