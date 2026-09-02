@@ -1,5 +1,5 @@
 """
-Pure Python stdlib MCP Server for CookieGli / Glimax.
+Pure Python stdlib MCP Server for CookieGli.
 Conforms to Model Context Protocol (MCP) JSON-RPC 2.0 over STDIO.
 Zero third-party dependencies.
 """

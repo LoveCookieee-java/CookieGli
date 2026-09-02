@@ -118,8 +118,6 @@ Whenever you resolve a non-trivial bug, overcome a tricky compiler error, or dis
 
 ---
 
----
-
 ### Protocol 5: Universal Multi-Target Synchronization & MCP Integration
 CookieGli 2.2 Enterprise is a universal token-economy engine for all modern AI coding agents:
 - **Claude Code**: Syncs compact AST Genome and Darwin lessons into `CLAUDE.md` to trigger Anthropic's 75%–90% prompt cache read discount (Claude Fable 5.1 / Opus 5 / Sonnet 5).

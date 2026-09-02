@@ -1,5 +1,5 @@
 """
-Target Adapters for CookieGli / Glimax Universal AI Engine.
+Target Adapters for CookieGli Universal AI Engine.
 Supports non-destructive, bounded synchronization into:
 - Claude Code (CLAUDE.md)
 - OpenAI Codex & Agents (AGENTS.md)
