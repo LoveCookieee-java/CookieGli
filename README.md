@@ -22,12 +22,13 @@
 - [2. Kiến Trúc Hoạt Động](#2-kiến-trúc-hoạt-động)
 - [3. Các Tính Năng Cốt Lõi](#3-các-tính-năng-cốt-lõi)
   - [3.1. Semantic Code Skeletonizer & Focus-Symbol Mode](#31-semantic-code-skeletonizer--focus-symbol-mode)
-  - [3.2. Chỉ Mục Biểu Tượng B-Tree (Inverted Symbol Index)](#32-chỉ-mục-biểu-tượng-b-tree-inverted-symbol-index)
-  - [3.3. Phân Tích Lan Truyền Thay Đổi (Git Blast Radius & Test Targeting)](#33-phân-tích-lan-truyền-thay-đổi-git-blast-radius--test-targeting)
-  - [3.4. Chưng Cất Lỗi Tự Động (Autonomous Error & Traceback Distiller)](#34-chưng-cất-lỗi-tự-động-autonomous-error--traceback-distiller)
-  - [3.5. Bản Đồ Kiến Trúc Dự Án (Project AST Genome)](#35-bản-đồ-kiến-trúc-dự-án-project-ast-genome)
-  - [3.6. Hỗ Trợ Dự Án Monorepo Phân Cấp](#36-hỗ-trợ-dự-án-monorepo-phân-cấp)
-  - [3.7. Bộ Nhớ Kinh Nghiệm Thích Ứng (Darwin Memory Pool)](#37-bộ-nhớ-kinh-nghiệm-thích-ứng-darwin-memory-pool)
+  - [3.2. Chỉ Mục Biểu Tượng B-Tree & Toàn Văn SQLite FTS5 BM25+](#32-chỉ-mục-biểu-tượng-b-tree--toàn-văn-sqlite-fts5-bm25)
+  - [3.3. Động Cơ Ngữ Cảnh Hai Tầng (Two-Tier Boost Engine) & Hiệu Chuẩn Suy Luận 2026](#33-động-cơ-ngữ-cảnh-hai-tầng-two-tier-boost-engine--hiệu-chuẩn-suy-luận-2026)
+  - [3.4. Phân Tích Lan Truyền Thay Đổi (Git Blast Radius & Test Targeting)](#34-phân-tích-lan-truyền-thay-đổi-git-blast-radius--test-targeting)
+  - [3.5. Chưng Cất Lỗi Tự Động (Autonomous Error & Traceback Distiller)](#35-chưng-cất-lỗi-tự-động-autonomous-error--traceback-distiller)
+  - [3.6. Bản Đồ Kiến Trúc Dự Án (Project AST Genome) & Chuẩn Hóa Token-0](#36-bản-đồ-kiến-trúc-dự-án-project-ast-genome--chuẩn-hóa-token-0)
+  - [3.7. Hỗ Trợ Dự Án Monorepo Phân Cấp](#37-hỗ-trợ-dự-án-monorepo-phân-cấp)
+  - [3.8. Bộ Nhớ Kinh Nghiệm Thích Ứng (Darwin Memory Pool)](#38-bộ-nhớ-kinh-nghiệm-thích-ứng-darwin-memory-pool)
 - [4. Số Liệu Kiểm Định Thực Nghiệm](#4-số-liệu-kiểm-định-thực-nghiệm)
 - [5. Cài Đặt & Bắt Đầu Nhanh](#5-cài-đặt--bắt-đầu-nhanh)
 - [6. Tra Cứu Lệnh CLI](#6-tra-cứu-lệnh-cli)
@@ -106,34 +107,39 @@ Bộ xử lý cấu trúc hỗ trợ phân tích và rút gọn mã nguồn nhi�
 * **Chế độ Focus-Symbol:** Khi cần làm việc với một hàm hoặc phương thức cụ thể, hệ thống giữ nguyên văn 100% nội dung của hàm đó (bao gồm chú thích và thụt lề chuẩn), đồng thời rút gọn tất cả các hàm và class còn lại trong file.
 * **Cơ chế nén 4 tầng (4-Tier Token Budget):** Tự động điều chỉnh mật độ thông tin (giữ docstring đầy đủ -> rút gọn 1 dòng -> loại bỏ docstring hàm phụ -> gộp phương thức nội bộ) để đảm bảo không vượt quá ngân sách token quy định.
 
-### 3.2. Chỉ Mục Biểu Tượng B-Tree (Inverted Symbol Index)
-* Bảng cơ sở dữ liệu `symbol_cache` lưu trữ trong SQLite với chế độ Write-Ahead Logging (WAL).
-* Đánh chỉ mục B-Tree NOCASE trên cả tên định danh ngắn (`simple_name`) và tên đầy đủ kèm tiền tố container (`name`, ví dụ `ClassName.method_name`).
-* Hỗ trợ tự động phân giải thư mục nguồn nội bộ (`src`, `lib`, `app`, `packages`) để phân tách chính xác giữa import nội bộ dự án và thư viện ngoài.
-* Tốc độ tìm kiếm đạt trung bình 0.0645 ms/truy vấn, đạt thông lượng hơn 15,000 lượt tra cứu mỗi giây.
+### 3.2. Chỉ Mục Biểu Tượng B-Tree & Toàn Văn SQLite FTS5 BM25+
+* **B-Tree Index (<0.1ms):** Bảng `symbol_cache` lưu trữ trong SQLite WAL với chỉ mục kép NOCASE trên `simple_name` và `name` (kèm container prefix). Hơn 15,000 queries/giây.
+* **Hybrid Retrieval (SQLite FTS5 BM25+):** Bảng ảo `symbol_fts` đồng bộ tự động 2 chiều qua bộ 3 SQLite Triggers (`trig_symbol_cache_ai`, `trig_symbol_cache_ad`, `trig_symbol_cache_au`). Xếp hạng Information Retrieval chuẩn công nghiệp theo thuật toán Okapi BM25.
+* **Token Sanitization & Fallback:** Tự động khử trùng lặp từ khóa, bỏ qua wildcard cho từ đơn 1 ký tự, và graceful fallback về B-Tree search nếu môi trường thiếu FTS5 module.
 
-### 3.3. Phân Tích Lan Truyền Thay Đổi (Git Blast Radius & Test Targeting)
+### 3.3. Động Cơ Ngữ Cảnh Hai Tầng (Two-Tier Boost Engine) & Hiệu Chuẩn Suy Luận 2026
+* **Layer 1: Static Architectural Anchor (<600 tokens):** Nằm cố định tại Token 0 của các file chỉ dẫn (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`). Tuyệt đối bất biến (`# PROJECT GENOME | id:...`), triệt tiêu timestamp động và telemetry nổi -> Kích hoạt **100% Prefix Cache Read Discount** (giảm 90% chi phí trên GPT-6 Astra, GPT-5.6 Sol, Claude Opus 5, Gemini 3.7 Flash, Kimi K3, DeepSeek-V4).
+* **Layer 2: Dynamic Task Tail (<600 tokens):** Sinh theo từng tác vụ cụ thể (`cookiegli boost <task>`), kết hợp BM25 symbol matching + Code Skeletonizer giữ verbatim hàm focus + Blast Radius test targeting. Tự động cân bằng code fences markdown khi cắt tỉa.
+* **Hiệu chuẩn suy luận 2026 (Reasoning Calibration):** Tự động điều chỉnh `effort=low/medium/high` theo `blast_depth` để tiết kiệm token suy luận đắt đỏ ($15–$50/M) của các frontier models.
+
+### 3.4. Phân Tích Lan Truyền Thay Đổi (Git Blast Radius & Test Targeting)
 * **Đảo ngược đồ thị phụ thuộc (Forward-to-Ingress):** Xây dựng danh sách các file trực tiếp và gián tiếp phụ thuộc vào một module hoặc symbol bất kỳ.
 * **Tự động nhận diện thay đổi:** Đọc trạng thái sửa đổi thông qua `git status --porcelain` an toàn hoặc tự động đối chiếu `mtime` trên cache SQLite khi không có môi trường Git.
 * **Khoanh vùng kiểm thử chính xác (Surgical Test Targeting):** Ánh xạ từ các module bị thay đổi sang đúng các file test tương ứng, tự động đề xuất câu lệnh chạy kiểm thử tối thiểu thay vì chạy toàn bộ test suite, giảm đến 80% dung lượng log kiểm thử thừa.
 
-### 3.4. Chưng Cất Lỗi Tự Động (Autonomous Error & Traceback Distiller)
+### 3.5. Chưng Cất Lỗi Tự Động (Autonomous Error & Traceback Distiller)
 * **Bộ bóc tách traceback 3 tầng:** Nhận diện và trích xuất khung lỗi từ Python (`unittest`, `pytest`, `Traceback`), Node.js/Jest stack traces, cũng như Go/Rust panics.
 * **Nhận diện mẫu sửa lỗi:** Phân tích git diff hoặc mô tả sửa lỗi (như bổ sung kiểm tra None/Null, fallback mặc định, chuẩn hóa đường dẫn, kiểm tra biên mảng).
 * **Tự động tạo quy tắc và lưu trữ:** Tổng hợp thành quy tắc bài học Darwin có gắn nhãn phạm vi (`core.cache`, `git.blast`, `engine.ast`...), tính điểm tin cậy ban đầu qua công thức Laplace Smoothing và hỗ trợ khôi phục tự động các quy tắc cũ nếu lỗi tái diễn.
 
-### 3.5. Bản Đồ Kiến Trúc Dự Án (Project AST Genome)
+### 3.6. Bản Đồ Kiến Trúc Dự Án (Project AST Genome) & Chuẩn Hóa Token-0
 * Tạo bản tóm tắt cấu trúc toàn dự án chỉ trong phạm vi dưới 600 tokens.
-* Bao gồm: kiến trúc công nghệ, điểm vào (entry points), ma trận phụ thuộc, các class/hàm trung tâm, chuẩn đặt tên và lịch sử commit gần nhất.
-* Cung cấp ngữ cảnh ban đầu đầy đủ và tức thì cho bất kỳ công cụ hoặc thành viên mới nào trong nhóm.
+* Chuẩn hóa bất biến Token 0: loại bỏ timestamp động, bảo toàn byte-stability để duy trì tỷ lệ cache hit cao nhất.
+* Bao gồm: kiến trúc công nghệ, điểm vào (entry points), ma trận phụ thuộc, các class/hàm trung tâm và hotspot kiến trúc.
 
-### 3.6. Hỗ Trợ Dự Án Monorepo Phân Cấp
+### 3.7. Hỗ Trợ Dự Án Monorepo Phân Cấp
 * **Tier-1 Root Cluster Map (<300 tokens):** Cung cấp bức tranh toàn cảnh về các package và mối quan hệ liên gói.
 * **Tier-2 Package Leaf Genome (<500 tokens):** Bản tóm tắt chuyên sâu cho từng package cụ thể.
 * Tránh việc nạp toàn bộ cấu trúc khổng lồ của monorepo vào một phiên làm việc đơn lẻ.
 
-### 3.7. Bộ Nhớ Kinh Nghiệm Thích Ứng (Darwin Memory Pool)
+### 3.8. Bộ Nhớ Kinh Nghiệm Thích Ứng (Darwin Memory Pool)
 * Lưu trữ các quy tắc, mẫu thiết kế và bài học thực chiến vào `.cookiegli/darwin_state.json`.
+* Tách riêng telemetry số liệu nổi khỏi tệp markdown để bảo vệ prefix cache.
 * Sử dụng công thức làm mượt Bayesian (Laplace Smoothing) kết hợp chu kỳ bán rã thời gian ($t_{1/2} = 30$ ngày) để tự động tăng ưu tiên các kinh nghiệm thực sự hiệu quả và loại bỏ dần các quy tắc lỗi thời.
 
 ---
@@ -178,7 +184,25 @@ cd CookieGli
 
 ### Các ví dụ sử dụng cơ bản
 
-**1. Rút gọn cấu trúc file mã nguồn:**
+**1. Khởi tạo một lệnh duy nhất (One-Command Bootstrap):**
+```bash
+# Quét mã nguồn, nạp SQLite B-Tree & FTS5 BM25 index, và đồng bộ Layer 1 tĩnh:
+python cli/cookiegli.py boost --init
+```
+
+**2. Sinh lát cắt ngữ cảnh động cho tác vụ lập trình (<600 tokens):**
+```bash
+# Tự động xếp hạng symbol BM25+, rút gọn skeleton, và hiệu chuẩn reasoning effort:
+python cli/cookiegli.py boost "Fix cache miss on relative path in AstCache"
+```
+
+**3. Tra cứu toàn văn biểu tượng qua FTS5 BM25+:**
+```bash
+# Tìm kiếm nhanh toàn văn trong sub-millisecond:
+python cli/cookiegli.py search "AstCache"
+```
+
+**4. Rút gọn cấu trúc file mã nguồn:**
 ```bash
 # Rút gọn toàn bộ file giữ lại khai báo chữ ký:
 python cli/cookiegli.py skeleton src/cookiegli_core/ast_scanner.py
@@ -187,7 +211,7 @@ python cli/cookiegli.py skeleton src/cookiegli_core/ast_scanner.py
 python cli/cookiegli.py skeleton src/cookiegli_core/ast_scanner.py --focus scan
 ```
 
-**2. Tra cứu định nghĩa biểu tượng:**
+**5. Tra cứu định nghĩa biểu tượng:**
 ```bash
 # Tìm kiếm biểu tượng theo tên:
 python cli/cookiegli.py symbol AstScanner
@@ -196,7 +220,7 @@ python cli/cookiegli.py symbol AstScanner
 python cli/cookiegli.py symbol find_symbols --exact
 ```
 
-**3. Phân tích phạm vi ảnh hưởng khi sửa đổi:**
+**6. Phân tích phạm vi ảnh hưởng khi sửa đổi:**
 ```bash
 # Tự động phát hiện thay đổi qua git status và đề xuất test suite:
 python cli/cookiegli.py blast --diff
@@ -205,18 +229,18 @@ python cli/cookiegli.py blast --diff
 python cli/cookiegli.py blast --file src/cookiegli_core/skeletonizer.py
 ```
 
-**4. Chưng cất lỗi và lưu bài học:**
+**7. Chưng cất lỗi và lưu bài học:**
 ```bash
 # Trích xuất bài học từ traceback hoặc log kiểm thử:
 python cli/cookiegli.py distill --traceback "TypeError: 'NoneType' object is not subscriptable" --file src/cookiegli_core/cache_db.py --fix "Thêm guard kiểm tra None trước khi truy cập phần tử" --auto-register --sync
 ```
 
-**5. Tạo bản đồ kiến trúc toàn dự án:**
+**8. Tạo bản đồ kiến trúc toàn dự án:**
 ```bash
 python cli/cookiegli.py genome build . --save .agents/GENOME.md
 ```
 
-**6. Đồng bộ sang cấu hình các công cụ:**
+**9. Đồng bộ sang cấu hình các công cụ:**
 ```bash
 python cli/cookiegli.py sync --target all --root .
 ```
