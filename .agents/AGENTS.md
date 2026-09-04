@@ -21,8 +21,15 @@ Always operate with maximum token economy and razor-sharp precision:
 2. **Does it already exist in the codebase?** Reuse existing helpers, utilities, and patterns. Look before writing.
 3. **Does the standard library do this?** Prefer stdlib over custom code.
 4. **Does an existing dependency solve this?** Do not add new dependencies for simple tasks.
-5. **Shortest working diff wins**: Favor deletion of dead code and direct root-cause fixes over superficial wrapper guards.
+5. **Shortest working diff wins**: Favor simplification and direct root-cause fixes over superficial wrapper guards.
 6. **Lazy, not negligent**: Never compromise on security, input validation, error handling, or data integrity.
+
+---
+
+## ⚠️ Mandatory Safety Invariant: Absolute Prohibition of Unauthorized File Deletion
+- **NO DESTRUCTIVE ACTIONS / NO UNAUTHORIZED FILE DELETION**:
+  - Tuyệt đối KHÔNG được thực hiện các lệnh xóa file/thư mục (`rm`, `del`, `rmdir`, `Remove-Item`, `unlink`, `git clean`, `shutil.rmtree`, `os.remove`, `os.unlink`, etc.) hoặc tự ý xóa bất kỳ file/thư mục nào trong workspace hoặc trên hệ thống khi chưa có sự cho phép rõ ràng từ người dùng.
+  - Mọi hành động dọn dẹp, thay thế phá hủy hoặc xóa file BẮT BUỘC phải hỏi ý kiến người dùng trước và chỉ được thực hiện khi người dùng đồng ý tường minh.
 
 ---
 
@@ -52,20 +59,16 @@ Whenever you solve a non-trivial bug, resolve a compilation error, or discover a
 - **Auto-Persist Learning**: Automatically append the learned rule into the workspace's `.agents/AGENTS.md` under the markers:
   ```markdown
   <!-- darwin:learnings:start -->
-### 🧬 Darwin Learned Patterns & Best Practices
-<!-- darwin:learnings:start -->
-### 🧬 Darwin Learned Patterns & Best Practices
-- *No verified patterns evolved yet. Run tasks to build evolutionary memory.*
-<!-- darwin:learnings:end -->
-<!-- darwin:learnings:end -->
+  ### 🧬 Darwin Learned Patterns & Best Practices
+  - [PATTERN/LESSON] **Title** `[scope]` (ROI: 0.95, SR: 100%): Concrete actionable principle.
+  <!-- darwin:learnings:end -->
   ```
 - **Temporal Half-Life Decay**: Patterns decay smoothly over time ($\text{ROI}(t) = \text{ROI}_0 \times 2^{-\Delta t / 30\text{d}}$), automatically pruning obsolete patterns over months/years.
 - **Permanent Knowledge Compounding**: All future agent sessions in this workspace automatically inherit and follow these lessons, preventing repetitive mistakes forever.
 
 <!-- darwin:learnings:start -->
 ### 🧬 Darwin Learned Patterns & Best Practices
-- [LESSON] **Windows Shell Safety** `[core]` (ROI: 1.00, SR: 100%): Tuyệt đối không gọi các lệnh Unix shell ngoài (`date -u`, `2>/dev/null`, `grep | head`) qua `os.popen()` hoặc `subprocess` trên Windows vì sẽ gây treo tiến trình (hang). Sử dụng pure Python stdlib (`datetime`, `pathlib`, `ast`).
-- [PATTERN] **Bayesian Smoothed ROI** `[math]` (ROI: 0.96, SR: 100%): Sử dụng Laplace smoothing (success + 1)/(total + 2) để tránh việc biến dạng điểm ROI khi số lượt dùng còn quá ít.
-- [PATTERN] **Capacity Pruning Algorithm** `[memory]` (ROI: 0.95, SR: 100%): Khi cắt tỉa pool `max_artifacts`, phải ưu tiên bảo vệ `protect_recent` nhưng vẫn đảm bảo tổng số item active không vượt quá `max_artifacts` bằng cách tỉa item có ROI thấp nhất trong nhóm non-protected trước.
-- [PATTERN] **Atomic File Persistence** `[storage]` (ROI: 0.94, SR: 100%): Ghi dữ liệu vào file tạm cùng thư mục rồi `os.replace` để bảo đảm file JSON state không bao giờ bị hỏng giữa chừng.
-- [PATTERN] **Monorepo Tiered Resolution** `[enterprise]` (ROI: 0.95, SR: 100%): Với monorepo lớn, nạp Tier-1 Root Cluster Map (<300 tokens) trước, sau đó chỉ nạp Tier-2 Leaf Genome của package mục tiêu để giữ context luôn <600 tokens.
+- [PATTERN] **Dual Path Matching & Cache Miss Elimination** `[cache]` `[cache, sqlite, performance]` (ROI: 0.53, SR: 67%): Khi lưu trữ cả đường dẫn tuyệt đối lẫn tương đối trong cache database, truy vấn phải kiểm tra WHERE (relative_path = ? OR path = ?) AND mtime = ? để triệt tiêu 100% lỗi cache miss khi gọi bằng relative path.
+- [PATTERN] **Multi-Source Root Import Resolution** `[ast]` `[ast, imports, scanner]` (ROI: 0.53, SR: 67%): Tự động phát hiện các thư mục nguồn nội bộ (src, lib, app, packages) để phân loại chính xác các import của project vào imports_internal thay vì bị nhận nhầm thành 3rd-party external dependencies.
+- [PATTERN] **Indexed B-Tree Symbol Lookup** `[db]` `[symbol, btree, sqlite]` (ROI: 0.53, SR: 67%): Lưu trữ symbol với cả simple_name và name (có container), đánh index NOCASE trên cả hai cột và tìm kiếm qua OR clause để SQLite tối ưu B-Tree index union đạt tốc độ < 0.05ms.
+<!-- darwin:learnings:end -->

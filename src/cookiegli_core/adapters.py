@@ -9,6 +9,7 @@ Supports non-destructive, bounded synchronization into:
 """
 
 import os
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -23,6 +24,13 @@ class TargetManager:
 
     SUPPORTED_TARGETS = ("claude", "codex", "antigravity", "cursor", "windsurf", "all")
 
+    @classmethod
+    def _clean_darwin_body(cls, darwin_text: Optional[str]) -> Optional[str]:
+        if not darwin_text:
+            return None
+        from .distiller import clean_darwin_summary
+        return clean_darwin_summary(darwin_text)
+
     @staticmethod
     def _inject_bounded_block(
         content: str,
@@ -33,15 +41,21 @@ class TargetManager:
     ) -> str:
         """Replaces or appends a bounded block cleanly."""
         block = f"{start_tag}\n{new_block_body.strip()}\n{end_tag}"
-        if start_tag in content and end_tag in content:
-            pre = content.split(start_tag)[0]
-            post = content.split(end_tag)[1]
-            return f"{pre}{block}{post}"
-        
+        # Target unindented block at column 0 first to protect indented code examples
+        pattern_unindented = re.compile(rf'^{re.escape(start_tag)}\s*$.*?^{re.escape(end_tag)}\s*$', re.DOTALL | re.MULTILINE)
+        matches = list(pattern_unindented.finditer(content))
+        if not matches:
+            pattern_any = re.compile(rf'{re.escape(start_tag)}.*?{re.escape(end_tag)}', re.DOTALL)
+            matches = list(pattern_any.finditer(content))
+
+        if matches:
+            target_match = matches[-1]
+            return content[:target_match.start()] + block + content[target_match.end():]
+
         # If tag not present, append to end
         stripped = content.strip()
         if stripped:
-            return f"{stripped}\n\n{header_hint}\n{block}\n"
+            return f"{stripped}\n\n{header_hint}\n{block}\n" if header_hint else f"{stripped}\n\n{block}\n"
         return f"{header_hint}\n{block}\n" if header_hint else f"{block}\n"
 
     @classmethod
@@ -57,7 +71,8 @@ class TargetManager:
                 updated, cls.GENOME_START_TAG, cls.GENOME_END_TAG, genome_body, "## Architecture & Codebase Map"
             )
         if darwin_text:
-            darwin_body = f"### 🧬 Darwin Learned Best Practices\n{darwin_text.strip()}"
+            cleaned = cls._clean_darwin_body(darwin_text)
+            darwin_body = f"### 🧬 Darwin Learned Best Practices\n{cleaned.strip()}"
             updated = cls._inject_bounded_block(
                 updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, darwin_body, "## Learned Engineering Patterns"
             )
@@ -78,7 +93,8 @@ class TargetManager:
                 updated, cls.GENOME_START_TAG, cls.GENOME_END_TAG, genome_body, "## Architecture Context"
             )
         if darwin_text:
-            darwin_body = f"### 🧬 System Priors & Darwin Learnings\n{darwin_text.strip()}"
+            cleaned = cls._clean_darwin_body(darwin_text)
+            darwin_body = f"### 🧬 System Priors & Darwin Learnings\n{cleaned.strip()}"
             updated = cls._inject_bounded_block(
                 updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, darwin_body, "## Operational Priors"
             )
@@ -102,7 +118,8 @@ class TargetManager:
         if darwin_text:
             d_path = agents_dir / "AGENTS.md"
             existing = d_path.read_text(encoding="utf-8") if d_path.exists() else "# Antigravity Operating Ruleset\n"
-            darwin_body = f"### 🧬 Darwin Learned Patterns & Best Practices\n{darwin_text.strip()}"
+            cleaned = cls._clean_darwin_body(darwin_text)
+            darwin_body = f"### 🧬 Darwin Learned Patterns & Best Practices\n{cleaned.strip()}"
             legacy_start = "<!-- darwin:learnings:start -->"
             legacy_end = "<!-- darwin:learnings:end -->"
             if legacy_start in existing and legacy_end in existing:
@@ -127,7 +144,8 @@ class TargetManager:
             if genome_text:
                 content += f"## AST Codebase Genome\n```\n{genome_text.strip()}\n```\n\n"
             if darwin_text:
-                content += f"## Verified Operational Patterns\n{darwin_text.strip()}\n"
+                cleaned = cls._clean_darwin_body(darwin_text)
+                content += f"## Verified Operational Patterns\n{cleaned.strip()}\n"
             mdc_path.write_text(content, encoding="utf-8")
             paths.append(mdc_path)
 
@@ -139,8 +157,9 @@ class TargetManager:
                 updated, cls.GENOME_START_TAG, cls.GENOME_END_TAG, f"```\n{genome_text.strip()}\n```", "## Genome"
             )
         if darwin_text:
+            cleaned = cls._clean_darwin_body(darwin_text)
             updated = cls._inject_bounded_block(
-                updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, darwin_text.strip(), "## Learned Best Practices"
+                updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, cleaned.strip(), "## Learned Best Practices"
             )
         cursorrules.write_text(updated, encoding="utf-8")
         paths.append(cursorrules)
@@ -158,8 +177,9 @@ class TargetManager:
                 updated, cls.GENOME_START_TAG, cls.GENOME_END_TAG, f"```\n{genome_text.strip()}\n```", "## Codebase Genome"
             )
         if darwin_text:
+            cleaned = cls._clean_darwin_body(darwin_text)
             updated = cls._inject_bounded_block(
-                updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, darwin_text.strip(), "## Verified Practices"
+                updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, cleaned.strip(), "## Verified Practices"
             )
         windsurf_file.write_text(updated, encoding="utf-8")
         return windsurf_file

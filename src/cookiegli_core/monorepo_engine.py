@@ -131,8 +131,8 @@ class MonorepoEngine:
     def build(self) -> MonorepoGenome:
         """Scan codebase, assign files to packages, and resolve inter-package dependencies."""
         packages = self.discover_packages()
-        scanner = AstScanner(str(self.root_path), max_files=self.max_files, use_cache=self.use_cache)
-        all_files = scanner.scan()
+        with AstScanner(str(self.root_path), max_files=self.max_files, use_cache=self.use_cache) as scanner:
+            all_files = scanner.scan()
 
         # Sort packages by path depth descending so nested packages take priority
         sorted_pkgs = sorted(packages.values(), key=lambda p: len(p.rel_path.split('/')) if p.rel_path else 0, reverse=True)
@@ -140,7 +140,7 @@ class MonorepoEngine:
         for f in all_files:
             assigned = False
             for pkg in sorted_pkgs:
-                if pkg.rel_path and f.path.startswith(pkg.rel_path + '/'):
+                if pkg.rel_path and (f.relative_path == pkg.rel_path or f.relative_path.startswith(pkg.rel_path + '/')):
                     pkg.files.append(f)
                     assigned = True
                     break
@@ -155,13 +155,31 @@ class MonorepoEngine:
 
         for pkg_name, pkg in packages.items():
             for f in pkg.files:
-                for imp in f.imports_external:
-                    # check if external import matches another package name
-                    clean_imp = imp.split('/')[0].replace('@', '')
+                for imp in f.imports_internal + f.imports_external:
+                    # check if internal or external import matches another package name
+                    candidates = [
+                        imp,
+                        imp.replace('@', ''),
+                        imp.split('/')[0].replace('@', ''),
+                        imp.split('.')[0],
+                    ]
+                    if '/' in imp:
+                        parts = imp.split('/')
+                        candidates.append(parts[-1])
+                        if len(parts) > 1 and parts[0].startswith('@'):
+                            candidates.append(parts[1])
+                            candidates.append(f"{parts[0]}/{parts[1]}")
                     for other_pkg in pkg_names:
-                        if other_pkg != pkg_name and (clean_imp == other_pkg or clean_imp in other_pkg):
-                            pkg.internal_deps.add(other_pkg)
-                            inter_graph[pkg_name].add(other_pkg)
+                        if other_pkg != pkg_name:
+                            matched = False
+                            for c in candidates:
+                                c_norm = c.replace('-', '_').lower()
+                                o_norm = other_pkg.replace('-', '_').lower()
+                                if c_norm == o_norm or (len(c_norm) > 3 and c_norm in o_norm) or (len(o_norm) > 3 and o_norm in c_norm):
+                                    pkg.internal_deps.add(other_pkg)
+                                    inter_graph[pkg_name].add(other_pkg)
+                                    matched = True
+                                    break
 
         total_files = len(all_files)
         total_lines = sum(f.total_lines for f in all_files)

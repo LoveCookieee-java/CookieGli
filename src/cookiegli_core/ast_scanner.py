@@ -51,6 +51,7 @@ class FileStructure:
     total_lines: int = 0
     classes: List[CodeEntity] = field(default_factory=list)
     functions: List[CodeEntity] = field(default_factory=list)
+    methods: List[CodeEntity] = field(default_factory=list)
     imports_internal: List[str] = field(default_factory=list)
     imports_external: List[str] = field(default_factory=list)
     is_entry_point: bool = False
@@ -83,6 +84,7 @@ class AstScanner:
         self.max_files = max_files
         self.use_cache = use_cache
         self.cache = None
+        self.source_roots = self._discover_source_roots()
         if self.use_cache:
             try:
                 from .cache_db import AstCache
@@ -90,6 +92,61 @@ class AstScanner:
                 self.cache = AstCache(cdir)
             except Exception:
                 self.cache = None
+
+    def _discover_source_roots(self) -> List[Path]:
+        """Discover source roots for multi-source root resolution."""
+        roots = [self.root_path]
+        for name in ['src', 'lib', 'app', 'packages']:
+            candidate = self.root_path / name
+            if candidate.is_dir():
+                roots.append(candidate)
+                if name == 'packages':
+                    try:
+                        for sub in candidate.iterdir():
+                            if sub.is_dir() and not sub.name.startswith('.'):
+                                roots.append(sub)
+                                sub_src = sub / 'src'
+                                if sub_src.is_dir():
+                                    roots.append(sub_src)
+                    except Exception:
+                        pass
+        return roots
+
+    def _is_internal_module(self, pkg: str) -> bool:
+        """Check if a module/package is internal to the project."""
+        clean_pkg = pkg.replace('\\', '/').split('/')[0].split('.')[0]
+        for root in self.source_roots:
+            if (
+                (root / clean_pkg).is_dir()
+                or (root / f"{clean_pkg}.py").is_file()
+                or (root / f"{clean_pkg}.ts").is_file()
+                or (root / f"{clean_pkg}.tsx").is_file()
+                or (root / f"{clean_pkg}.js").is_file()
+                or (root / f"{clean_pkg}.jsx").is_file()
+                or (root / f"{clean_pkg}.go").is_file()
+                or (root / f"{clean_pkg}.rs").is_file()
+                or (root / f"{clean_pkg}.java").is_file()
+            ):
+                return True
+        return False
+
+    def close(self) -> None:
+        """Release cache resources cleanly (Windows file lock safe)."""
+        if self.cache:
+            try:
+                self.cache.close()
+            except Exception:
+                pass
+            self.cache = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def __del__(self):
+        self.close()
 
     def scan(self) -> List[FileStructure]:
         """Scan the project and return file structures with incremental caching."""
@@ -217,6 +274,31 @@ class AstScanner:
                     if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         if not child.name.startswith('_') or child.name in ('__init__', '__call__'):
                             methods.append(child.name)
+                            args = []
+                            for a in child.args.args:
+                                arg_str = a.arg
+                                if a.annotation:
+                                    try:
+                                        arg_str += f": {ast.unparse(a.annotation)}"
+                                    except Exception:
+                                        pass
+                                args.append(arg_str)
+                            ret_str = ""
+                            if child.returns:
+                                try:
+                                    ret_str = f" -> {ast.unparse(child.returns)}"
+                                except Exception:
+                                    pass
+
+                            child_doc = ast.get_docstring(child) or ""
+                            prefix = "async def" if isinstance(child, ast.AsyncFunctionDef) else "def"
+                            structure.methods.append(CodeEntity(
+                                name=f"{node.name}.{child.name}",
+                                entity_type='method',
+                                signature=f"{prefix} {child.name}({', '.join(args[:4])}){ret_str}",
+                                docstring=child_doc.splitlines()[0] if child_doc else "",
+                                line_number=child.lineno,
+                            ))
 
                 method_str = f" [methods: {', '.join(methods[:4])}]" if methods else ""
                 entity = CodeEntity(
@@ -262,7 +344,7 @@ class AstScanner:
                     pkg = alias.name.split('.')[0]
                     if pkg in STDLIB_PYTHON:
                         continue
-                    if (self.root_path / pkg).exists() or (self.root_path / f"{pkg}.py").exists():
+                    if self._is_internal_module(pkg):
                         structure.imports_internal.append(alias.name)
                     else:
                         structure.imports_external.append(pkg)
@@ -272,10 +354,13 @@ class AstScanner:
                     pkg = node.module.split('.')[0]
                     if pkg in STDLIB_PYTHON:
                         continue
-                    if node.level > 0 or (self.root_path / pkg).exists() or (self.root_path / f"{pkg}.py").exists():
+                    if node.level > 0 or self._is_internal_module(pkg):
                         structure.imports_internal.append(node.module)
                     else:
                         structure.imports_external.append(pkg)
+                elif node.level > 0:
+                    for alias in node.names:
+                        structure.imports_internal.append(alias.name)
 
         structure.imports_internal = sorted(set(structure.imports_internal))
         structure.imports_external = sorted(set(structure.imports_external))
@@ -287,6 +372,7 @@ class AstScanner:
             r'^\s*(?:export\s+)?(?:default\s+)?(?:public\s+|abstract\s+|final\s+|sealed\s+)*(?:class|interface|struct|trait|enum)\s+([A-Za-z0-9_]+)(?:<[^>]+>)?(?:\s+extends\s+([A-Za-z0-9_.]+))?',
             re.MULTILINE
         )
+        class_positions = []
         for m in class_pattern.finditer(content):
             name = m.group(1)
             ext_str = f" extends {m.group(2)}" if m.group(2) else ""
@@ -296,10 +382,70 @@ class AstScanner:
                 signature=f"{m.group(0).strip()}{ext_str}",
                 line_number=content[:m.start()].count('\n') + 1,
             ))
+            class_positions.append((m.start(), name))
 
-        # 2. Standard Functions (function, def, fn, pub fn, func)
+        # Find class body spans for method containment
+        class_spans = []  # (open_brace_idx, close_brace_idx, class_name)
+        for c_start, c_name in class_positions:
+            open_brace = content.find('{', c_start)
+            if open_brace == -1:
+                continue
+            depth = 1
+            pos = open_brace + 1
+            n = len(content)
+            while pos < n and depth > 0:
+                ch = content[pos]
+                if ch == '{':
+                    depth += 1
+                elif ch == '}':
+                    depth -= 1
+                elif ch in ('"', "'", '`'):
+                    quote = ch
+                    pos += 1
+                    while pos < n and content[pos] != quote:
+                        if content[pos] == '\\':
+                            pos += 1
+                        pos += 1
+                elif ch == '/' and pos + 1 < n and content[pos+1] == '/':
+                    nl = content.find('\n', pos)
+                    pos = nl if nl != -1 else n
+                elif ch == '/' and pos + 1 < n and content[pos+1] == '*':
+                    end_c = content.find('*/', pos + 2)
+                    pos = end_c + 1 if end_c != -1 else n
+                pos += 1
+            class_spans.append((open_brace, pos, c_name))
+
+        def get_container(pos: int) -> str:
+            matching = [c_name for (s, e, c_name) in class_spans if s <= pos < e]
+            return matching[-1] if matching else ""
+
+        ts_java_keywords = {
+            'if', 'else', 'for', 'while', 'switch', 'catch', 'finally',
+            'return', 'throw', 'new', 'typeof', 'instanceof', 'function',
+            'class', 'interface', 'type', 'import', 'export', 'from', 'as',
+            'try', 'do', 'with', 'yield', 'await', 'case', 'default'
+        }
+
+        # 2. Go Receiver Methods: func (r *Receiver[T]) Method(...)
+        go_receiver_pattern = re.compile(
+            r'^\s*func\s+\(\s*(?:[A-Za-z0-9_]+\s+)?\*?([A-Za-z0-9_]+)(?:\[[^\]]+\])?\s*\)\s+([A-Za-z0-9_]+)\s*\((.*?)\)(?:\s*([^{;\n]+))?',
+            re.MULTILINE
+        )
+        for m in go_receiver_pattern.finditer(content):
+            receiver = m.group(1)
+            method_name = m.group(2)
+            if not method_name.startswith('_'):
+                ret = f" -> {m.group(4).strip()}" if m.group(4) and m.group(4).strip() else ""
+                structure.methods.append(CodeEntity(
+                    name=f"{receiver}.{method_name}",
+                    entity_type='method',
+                    signature=f"func ({receiver}) {method_name}({m.group(3)[:30]}){ret}",
+                    line_number=content[:m.start()].count('\n') + 1,
+                ))
+
+        # 3. Standard Functions (function, def, fn, pub fn, func)
         func_pattern = re.compile(
-            r'^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:public\s+|static\s+|private\s+|protected\s+)*(?:function|fn|pub\s+fn|func)\s+(?:\([A-Za-z0-9_*\s,]+\)\s+)?([A-Za-z0-9_]+)\s*\((.*?)\)(?:\s*(?:->|:)\s*([A-Za-z0-9_<>\[\]]+))?',
+            r'^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?(?:public\s+|static\s+|private\s+|protected\s+)*(?:function|fn|pub\s+fn|func)\s+([A-Za-z0-9_]+)(?:<[^>]+>)?\s*\((.*?)\)(?:\s*(?:->|:)\s*([A-Za-z0-9_<>\[\]]+))?',
             re.MULTILINE
         )
         for m in func_pattern.finditer(content):
@@ -313,7 +459,7 @@ class AstScanner:
                     line_number=content[:m.start()].count('\n') + 1,
                 ))
 
-        # 3. Arrow Functions in JS/TS (const myFunc = async (args) => ...)
+        # 4. Arrow Functions in JS/TS (const myFunc = async (args) => ...)
         arrow_pattern = re.compile(
             r'^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s+)?\((.*?)\)(?:\s*:\s*([A-Za-z0-9_<>\[\]]+))?\s*=>',
             re.MULTILINE
@@ -329,19 +475,73 @@ class AstScanner:
                     line_number=content[:m.start()].count('\n') + 1,
                 ))
 
-        # 4. Imports extraction
+        # 5. Methods for TypeScript/JavaScript inside classes
+        if language in ('TypeScript', 'React TSX', 'JavaScript', 'React JSX'):
+            ts_method_pattern = re.compile(
+                r'^\s*(?:(?:public|private|protected|static|override|readonly|async)\s+)*(?:async\s+)?([A-Za-z0-9_]+)(?:<[^>]+>)?\s*\((.*?)\)(?:\s*:\s*([A-Za-z0-9_<>\[\]\s|&]+))?\s*\{',
+                re.MULTILINE
+            )
+            for m in ts_method_pattern.finditer(content):
+                m_name = m.group(1)
+                if m_name in ts_java_keywords or m_name.startswith('_'):
+                    continue
+                container = get_container(m.start())
+                if container:
+                    full_name = f"{container}.{m_name}"
+                    ret = f" -> {m.group(3).strip()}" if m.group(3) else ""
+                    structure.methods.append(CodeEntity(
+                        name=full_name,
+                        entity_type='method',
+                        signature=f"{m_name}({m.group(2)[:30]}){ret}",
+                        line_number=content[:m.start()].count('\n') + 1,
+                    ))
+
+        # 6. Methods for Java/C#
+        if language in ('Java', 'C#'):
+            java_method_pattern = re.compile(
+                r'^\s*(?:@\w+(?:\([^)]*\))?\s+)*(?:public|protected|private)\s+(?:static\s+|final\s+|synchronized\s+|abstract\s+|default\s+)*(?:<[^>]+>\s+)?(?:([A-Za-z0-9_<>\[\],\s]+?)\s+)?([A-Za-z0-9_]+)\s*\((.*?)\)\s*(?:throws\s+[A-Za-z0-9_,\s]+)?\s*[{;]',
+                re.MULTILINE
+            )
+            for m in java_method_pattern.finditer(content):
+                m_name = m.group(2)
+                ret_type = m.group(1).strip() if m.group(1) else ""
+                if m_name in ts_java_keywords or m_name.startswith('_'):
+                    continue
+                container = get_container(m.start())
+                full_name = f"{container}.{m_name}" if container else m_name
+                ret_str = f" -> {ret_type}" if ret_type else ""
+                structure.methods.append(CodeEntity(
+                    name=full_name,
+                    entity_type='method',
+                    signature=f"{m_name}({m.group(3)[:30]}){ret_str}",
+                    line_number=content[:m.start()].count('\n') + 1,
+                ))
+
+        # 7. Imports extraction
         js_imports = re.findall(r'(?:from\s+|import\s*\(?)[\'"]([^\'"]+)[\'"]', content)
         go_imports = re.findall(r'import\s+[\'"]([^\'"]+)[\'"]', content)
         java_imports = re.findall(r'import\s+(?:static\s+)?([a-zA-Z0-9_.]+);', content)
         rust_imports = re.findall(r'use\s+([a-zA-Z0-9_:]+);', content)
 
-        all_imports = js_imports + go_imports + java_imports + rust_imports
-        for imp in all_imports:
-            if imp.startswith('.') or imp.startswith('/'):
+        for imp in js_imports + go_imports + java_imports:
+            if imp.startswith(('.', '/', '@/', '~/')):
                 structure.imports_internal.append(imp)
             else:
-                top_pkg = imp.split('/')[0] if '/' in imp else imp.split('::')[0].split('.')[0]
-                structure.imports_external.append(top_pkg)
+                top_pkg = imp.split('/')[0] if '/' in imp else imp.split('.')[0]
+                if self._is_internal_module(top_pkg):
+                    structure.imports_internal.append(imp)
+                else:
+                    structure.imports_external.append(top_pkg)
+
+        for imp in rust_imports:
+            if imp.startswith(('crate::', 'super::', 'self::')) or imp in ('crate', 'super', 'self'):
+                structure.imports_internal.append(imp)
+            else:
+                top_pkg = imp.split('::')[0]
+                if top_pkg in ('crate', 'super', 'self') or self._is_internal_module(top_pkg):
+                    structure.imports_internal.append(imp)
+                else:
+                    structure.imports_external.append(top_pkg)
 
         structure.imports_internal = sorted(set(structure.imports_internal))[:15]
         structure.imports_external = sorted(set(structure.imports_external))[:15]

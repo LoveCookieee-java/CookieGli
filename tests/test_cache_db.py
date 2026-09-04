@@ -1,7 +1,11 @@
+import sys
 import tempfile
 import time
 import unittest
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT / 'src'))
 
 from cookiegli_core.ast_scanner import CodeEntity, FileStructure
 from cookiegli_core.cache_db import AstCache

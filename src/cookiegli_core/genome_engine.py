@@ -255,6 +255,24 @@ class GenomeEngine:
         self.use_cache = use_cache
         self.scanner = AstScanner(str(self.root_path), use_cache=self.use_cache)
 
+    def close(self) -> None:
+        """Release underlying scanner and cache resources cleanly."""
+        if hasattr(self, 'scanner') and self.scanner:
+            try:
+                self.scanner.close()
+            except Exception:
+                pass
+            self.scanner = None
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def __del__(self):
+        self.close()
+
     def build(self) -> ProjectGenome:
         """Scan project and construct the full ProjectGenome."""
         files = self.scanner.scan()

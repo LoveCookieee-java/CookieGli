@@ -1,6 +1,10 @@
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO_ROOT / 'src'))
 
 from cookiegli_core.monorepo_engine import MonorepoEngine
 from cookiegli_core.genome_engine import estimate_tokens

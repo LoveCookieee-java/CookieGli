@@ -34,8 +34,18 @@ from cookiegli_core import (
     DarwinMemory,
     TargetManager,
     CookieGliMcpServer,
+    CodeSkeletonizer,
+    SkeletonResult,
+    BlastRadiusEngine,
+    BlastRadiusReport,
+    ErrorDistiller,
+    DistilledError,
+    DistilledLesson,
+    clean_darwin_summary,
     estimate_tokens,
 )
+from cookiegli_core.distiller import resolve_darwin_state_path
+
 
 
 def cmd_genome_build(args):
@@ -100,9 +110,13 @@ def cmd_monorepo_context(args):
 
 
 def cmd_darwin(args):
-    state_file = getattr(args, 'state', None) or os.path.join(os.getcwd(), '.agents', '.darwin_state.json')
+    root_path = Path(getattr(args, 'root', None) or os.getcwd()).resolve()
+    state_file = getattr(args, 'state', None)
+    if not state_file:
+        state_file = str(resolve_darwin_state_path(root_path))
     multi_dir = getattr(args, 'multi_dir', None)
     memory = DarwinMemory(state_file=state_file, multi_file_dir=multi_dir)
+
 
     if args.action == 'register':
         content = args.content
@@ -184,24 +198,8 @@ def cmd_darwin(args):
     elif args.action == 'sync':
         scope = getattr(args, 'scope', None)
         summary = memory.to_markdown_summary(args.max_tokens, scope=scope)
-        agents_file = Path(args.agents_file or os.path.join(os.getcwd(), '.agents', 'AGENTS.md'))
-        if agents_file.exists():
-            text = agents_file.read_text(encoding='utf-8')
-            if '<!-- darwin:learnings:start -->' in text and '<!-- darwin:learnings:end -->' in text:
-                import re
-                new_text = re.sub(
-                    r'<!-- darwin:learnings:start -->.*?<!-- darwin:learnings:end -->',
-                    summary,
-                    text,
-                    flags=re.DOTALL
-                )
-                agents_file.write_text(new_text, encoding='utf-8')
-                print(f"[SYNC] Updated Darwin learnings in {agents_file}")
-            else:
-                agents_file.write_text(text + f"\n\n{summary}\n", encoding='utf-8')
-                print(f"[SYNC] Appended Darwin learnings to {agents_file}")
-        else:
-            print(summary)
+        TargetManager.sync_antigravity(root_path, darwin_text=summary)
+        print(f"[SYNC] Synchronized Darwin learnings to Antigravity ruleset in {root_path / '.agents' / 'AGENTS.md'}")
 
     return 0
 
@@ -219,15 +217,9 @@ def cmd_sync(args):
     if not args.no_darwin:
         st = args.state
         if not st:
-            default_st = root_path / ".cookiegli" / "darwin_state.json"
-            if default_st.exists():
-                st = str(default_st)
-            else:
-                agent_st = root_path / ".agents" / ".darwin_state.json"
-                if agent_st.exists():
-                    st = str(agent_st)
+            st = str(resolve_darwin_state_path(root_path))
         darwin = DarwinMemory(state_file=st, multi_file_dir=args.multi_dir)
-        darwin_text = darwin.to_markdown_summary(max_tokens=args.max_darwin_tokens)
+        darwin_text = clean_darwin_summary(darwin.to_markdown_summary(max_tokens=args.max_darwin_tokens))
 
     res = TargetManager.sync(args.target, root_path, genome_text=genome_text, darwin_text=darwin_text)
     print(f"[SYNC COMPLETED] Target: {args.target}")
@@ -238,10 +230,212 @@ def cmd_sync(args):
     return 0
 
 
+def cmd_symbol(args):
+    root_path = Path(args.root or '.').resolve()
+    cache_dir = root_path / '.cookiegli'
+
+    query = args.query or ''
+    with AstCache(str(cache_dir)) as cache:
+        results = cache.find_symbols(
+            query=query,
+            entity_type=args.type,
+            exact=args.exact,
+            limit=args.limit,
+            path=args.path
+        )
+
+        if not results and cache.count() == 0:
+            with AstScanner(str(root_path), use_cache=True, cache_dir=str(cache_dir)) as scanner:
+                scanner.scan()
+            results = cache.find_symbols(
+                query=query,
+                entity_type=args.type,
+                exact=args.exact,
+                limit=args.limit,
+                path=args.path
+            )
+
+    if args.json:
+        print(json.dumps(results, indent=2, ensure_ascii=False))
+        return 0
+
+    if not results:
+        q_str = f" matching '{query}'" if query else ""
+        print(f"No symbols found{q_str}.")
+        return 0
+
+    q_str = f" for query '{query}'" if query else ""
+    print(f"[SYMBOL SEARCH] Found {len(results)} symbol(s){q_str}:\n")
+    for r in results:
+        sig = f" : {r['signature']}" if r.get('signature') else ""
+        print(f"  • [{r['entity_type']}] {r['name']} ({r['relative_path']}:{r['line_number']}){sig}")
+    return 0
+
+
+def cmd_skeleton(args):
+    file_path = Path(args.file_path).resolve()
+    if not file_path.is_file():
+        print(f"Error: File not found: {file_path}", file=sys.stderr)
+        return 1
+
+    # Detect workspace root
+    root = file_path.parent
+    found_root = False
+    while root.parent != root:
+        if (root / '.cookiegli').exists() or (root / '.git').exists():
+            found_root = True
+            break
+        root = root.parent
+    if not found_root:
+        root = Path.cwd()
+
+    with CodeSkeletonizer(str(root), use_cache=not args.no_cache) as skel:
+        result = skel.skeletonize_file(
+            file_path,
+            focus_symbol=args.focus,
+            max_tokens=args.max_tokens,
+        )
+
+    if args.json:
+        print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+        return 0
+
+    header = f"[SKELETON] {result.file_path} ({result.language}) | ~{result.tokens} tokens (Tier {result.applied_tier})"
+    if result.focus_symbol:
+        header += f" | Focus: {result.focus_symbol}"
+    if result.warning:
+        header += f" | Warning: {result.warning}"
+    print(header + "\n")
+    print(result.skeleton)
+    return 0
+
+
+def cmd_blast(args):
+    root_path = Path(args.path or '.').resolve()
+    target_files = [args.file] if args.file else None
+
+    with BlastRadiusEngine(str(root_path), use_cache=not args.no_cache) as engine:
+        report = engine.analyze(
+            target_files=target_files,
+            symbol=args.symbol,
+            max_depth=args.max_depth,
+        )
+
+    if args.json:
+        print(json.dumps(report.to_dict(), indent=2, ensure_ascii=False))
+        return 0
+
+    compact = report.to_compact()
+    print(compact)
+    return 0
+
+
 def cmd_mcp(args):
     root_path = Path(args.root or '.').resolve()
     server = CookieGliMcpServer(workspace_root=root_path)
     server.run_stdio()
+    return 0
+
+
+def cmd_distill(args):
+    root_path = Path(getattr(args, 'root', None) or os.getcwd()).resolve()
+    state_file = getattr(args, 'state', None)
+    if not state_file:
+        state_file = str(resolve_darwin_state_path(root_path))
+
+    # Determine input log/traceback text
+    log_text = getattr(args, 'traceback', None)
+    if not log_text and getattr(args, 'file', None):
+        f = Path(args.file)
+        if not f.exists():
+            print(f"error: file not found '{args.file}'", file=sys.stderr)
+            return 1
+        log_text = f.read_text(encoding='utf-8')
+    if not log_text and not sys.stdin.isatty():
+        log_text = sys.stdin.read()
+
+    if not log_text:
+        print("error: provide traceback/log via --traceback, --file, or stdin", file=sys.stderr)
+        return 1
+
+    diff_text = getattr(args, 'diff', None)
+    if not diff_text and getattr(args, 'diff_file', None):
+        df = Path(args.diff_file)
+        if not df.exists():
+            print(f"error: diff file not found '{args.diff_file}'", file=sys.stderr)
+            return 1
+        diff_text = df.read_text(encoding='utf-8')
+
+    fix_desc = getattr(args, 'fix', None)
+    scope_override = getattr(args, 'scope', None)
+    sync_targets = getattr(args, 'sync', None)
+    auto_register = getattr(args, 'auto_register', False) or (sync_targets is not None)
+
+    distiller = ErrorDistiller(workspace_root=root_path, state_file=state_file)
+    error, lesson, artifact = distiller.distill(
+        log_text=log_text,
+        diff_text=diff_text,
+        fix_description=fix_desc,
+        auto_register=auto_register,
+        sync_targets=sync_targets,
+        scope=scope_override
+    )
+
+    if getattr(args, 'json', False):
+        output = {
+            'error': {
+                'type': error.error_type,
+                'message': error.error_message,
+                'runner': error.runner,
+                'root_cause': f"{error.root_cause_frame.file}:{error.root_cause_frame.line}" if error.root_cause_frame else None,
+                'frames_count': len(error.frames),
+                'chained_count': len(error.chained_errors)
+            },
+            'lesson': {
+                'name': lesson.name,
+                'scope': lesson.scope,
+                'content': lesson.content,
+                'roi': round(lesson.roi, 3),
+                'success_rate': f"{lesson.success_rate:.0%}",
+                'tags': lesson.tags
+            },
+            'registered': {
+                'id': artifact.id,
+                'name': artifact.name,
+                'roi': round(artifact.roi, 3),
+                'uses': artifact.use_count,
+                'pruned': artifact.pruned
+            } if artifact else None,
+            'synced': sync_targets if sync_targets else None
+        }
+        print(json.dumps(output, indent=2, ensure_ascii=False))
+    else:
+        print("=" * 60)
+        print("🧬 COOKIEGLI ERROR & TRACEBACK DISTILLER")
+        print("=" * 60)
+        print(f"• Runner Detected : {error.runner.upper()}")
+        print(f"• Error Type      : {error.error_type}")
+        print(f"• Error Message   : {error.error_message}")
+        if error.root_cause_frame:
+            rc = error.root_cause_frame
+            func_str = f" in {rc.function}()" if rc.function else ""
+            print(f"• Root Cause Frame: {rc.file}:{rc.line}{func_str}")
+        if error.chained_errors:
+            print(f"• Chained Causes  : {len(error.chained_errors)} preceding exceptions")
+        print("-" * 60)
+        print("🧠 SYNTHESIZED DARWIN LESSON")
+        print("-" * 60)
+        print(f"• Name            : {lesson.name}")
+        print(f"• Scope           : [{lesson.scope}]")
+        print(f"• Bayesian Prior  : ROI {lesson.roi:.2f} | SR {lesson.success_rate:.0%}")
+        print(f"• Actionable Rule : {lesson.content}")
+        if artifact:
+            print("-" * 60)
+            print(f"✓ Registered in Darwin Memory [ID: {artifact.id}] (Active: {not artifact.pruned})")
+        if sync_targets:
+            print(f"✓ Synchronized to AI Agent Target: {sync_targets}")
+        print("=" * 60)
+
     return 0
 
 
@@ -364,6 +558,52 @@ def main():
     p_mcp = subparsers.add_parser('mcp', help="Run pure Python stdlib MCP server over STDIO")
     p_mcp.add_argument('--root', default='.', help="Workspace root directory")
     p_mcp.set_defaults(func=cmd_mcp)
+
+    # Symbol index search parser
+    p_sym = subparsers.add_parser('symbol', help="Fast B-Tree symbol index search")
+    p_sym.add_argument('query', nargs='?', default='', help="Symbol name or substring")
+    p_sym.add_argument('--type', choices=['class', 'function', 'method', 'interface', 'struct', 'arrow_function'], help="Filter by entity type")
+    p_sym.add_argument('--exact', action='store_true', help="Exact name match")
+    p_sym.add_argument('--limit', type=int, default=50, help="Maximum results to return")
+    p_sym.add_argument('--path', help="Filter by file path")
+    p_sym.add_argument('--root', default='.', help="Project root directory")
+    p_sym.add_argument('--json', action='store_true', help="Output results as JSON")
+    p_sym.set_defaults(func=cmd_symbol)
+
+    # Skeleton parser
+    p_skel = subparsers.add_parser('skeleton', help="Generate compact code skeleton with optional focus symbol")
+    p_skel.add_argument('file_path', help="Target source file path")
+    p_skel.add_argument('--focus', help="Focus symbol to preserve verbatim (e.g. func_name or Class.method)")
+    p_skel.add_argument('--max-tokens', type=int, default=600, help="Maximum skeleton token budget")
+    p_skel.add_argument('--json', action='store_true', help="Output skeleton result as JSON")
+    p_skel.add_argument('--no-cache', action='store_true', help="Disable SQLite incremental cache")
+    p_skel.set_defaults(func=cmd_skeleton)
+
+    # Blast radius parser
+    p_blast = subparsers.add_parser('blast', help="Analyze Git blast radius and downstream dependency impact")
+    p_blast.add_argument('--diff', action='store_true', help="Detect changed files via git status or mtime fallback")
+    p_blast.add_argument('--symbol', help="Specific symbol to analyze")
+    p_blast.add_argument('--file', help="Specific target file to analyze")
+    p_blast.add_argument('--path', default='.', help="Target project root directory")
+    p_blast.add_argument('--max-depth', type=int, default=3, help="Maximum BFS traversal depth (default: 3)")
+    p_blast.add_argument('--json', action='store_true', help="Output results as JSON")
+    p_blast.add_argument('--no-cache', action='store_true', help="Disable SQLite incremental cache")
+    p_blast.set_defaults(func=cmd_blast)
+
+    # Distill parser
+    p_distill = subparsers.add_parser('distill', help="Distill test failures, panics, or tracebacks into actionable Darwin learnings")
+    p_distill.add_argument('--traceback', '-t', help="Traceback or test failure log string")
+    p_distill.add_argument('--file', '-f', help="File containing traceback or test log")
+    p_distill.add_argument('--diff', '-d', help="Git diff or code patch showing the fix")
+    p_distill.add_argument('--diff-file', help="File containing git diff or code patch")
+    p_distill.add_argument('--fix', help="Human-provided explanation of the fix")
+    p_distill.add_argument('--auto-register', action='store_true', help="Automatically register lesson into Darwin memory pool")
+    p_distill.add_argument('--sync', nargs='?', const='all', default=None, help="Sync registered learnings to AI agent targets (default: all)")
+    p_distill.add_argument('--scope', help="Override domain scope namespace")
+    p_distill.add_argument('--state', help="Explicit path to darwin_state.json")
+    p_distill.add_argument('--root', default='.', help="Project root directory")
+    p_distill.add_argument('--json', action='store_true', help="Output results as JSON")
+    p_distill.set_defaults(func=cmd_distill)
 
     args = parser.parse_args()
     return args.func(args)

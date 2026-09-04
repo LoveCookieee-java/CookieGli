@@ -10,6 +10,15 @@ from .monorepo_engine import MonorepoEngine, MonorepoGenome, PackageNode
 from .darwin_memory import DarwinMemory, LearnedArtifact
 from .adapters import TargetManager
 from .mcp_server import CookieGliMcpServer
+from .skeletonizer import CodeSkeletonizer, SkeletonResult
+from .blast_radius import BlastRadiusEngine, BlastRadiusReport
+from .distiller import (
+    ErrorDistiller,
+    DistilledError,
+    DistilledLesson,
+    StackFrame,
+    clean_darwin_summary,
+)
 
 __version__ = "2.2.0"
 __all__ = [
@@ -26,5 +35,15 @@ __all__ = [
     "LearnedArtifact",
     "TargetManager",
     "CookieGliMcpServer",
+    "CodeSkeletonizer",
+    "SkeletonResult",
+    "BlastRadiusEngine",
+    "BlastRadiusReport",
+    "ErrorDistiller",
+    "DistilledError",
+    "DistilledLesson",
+    "StackFrame",
+    "clean_darwin_summary",
     "estimate_tokens",
 ]
+
