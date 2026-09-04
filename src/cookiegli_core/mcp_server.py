@@ -268,7 +268,12 @@ class CookieGliMcpServer:
             if not action:
                 raise ValueError("Missing required 'action' parameter for cookiegli_full")
             params = arguments.get("params")
-            if not isinstance(params, dict):
+            if isinstance(params, str):
+                try:
+                    params = json.loads(params)
+                except Exception:
+                    params = {}
+            elif not isinstance(params, dict):
                 params = {}
             for k, v in arguments.items():
                 if k not in ("action", "params") and k not in params:
@@ -278,18 +283,36 @@ class CookieGliMcpServer:
                 "boost": "cookiegli_boost",
                 "search": "cookiegli_search",
                 "find_symbols": "cookiegli_find_symbols",
+                "symbol": "cookiegli_find_symbols",
+                "symbols": "cookiegli_find_symbols",
+                "find": "cookiegli_find_symbols",
                 "skeleton": "cookiegli_get_skeleton",
+                "get_skeleton": "cookiegli_get_skeleton",
                 "blast": "cookiegli_blast_radius",
+                "blast_radius": "cookiegli_blast_radius",
                 "distill": "cookiegli_distill_lesson",
+                "distill_lesson": "cookiegli_distill_lesson",
                 "genome": "cookiegli_get_genome",
+                "get_genome": "cookiegli_get_genome",
                 "darwin_record": "cookiegli_darwin_record",
                 "darwin_search": "cookiegli_darwin_search",
                 "sync": "cookiegli_sync",
+                "context": "cookiegli_synthesize_context",
+                "synthesize_context": "cookiegli_synthesize_context",
             }
-            target_tool = action_map.get(action)
+            if action == "darwin":
+                target_tool = "cookiegli_darwin_record" if ("content" in params or "name" in params) else "cookiegli_darwin_search"
+            else:
+                target_tool = action_map.get(action)
+
             if not target_tool:
+                canonical = [
+                    "blast", "boost", "darwin_record", "darwin_search",
+                    "distill", "find_symbols", "genome", "search",
+                    "skeleton", "sync"
+                ]
                 raise ValueError(
-                    f"Unknown action '{action}' for cookiegli_full. Valid actions: {sorted(action_map.keys())}"
+                    f"Unknown action '{action}' for cookiegli_full. Valid actions: {canonical}"
                 )
             return self.handle_tool_call(target_tool, params)
 
@@ -401,7 +424,7 @@ class CookieGliMcpServer:
             return "\n".join(formatted)
 
         elif name == "cookiegli_get_skeleton":
-            raw_file_path = arguments.get("path")
+            raw_file_path = arguments.get("path") or arguments.get("file_path") or arguments.get("file")
             if not raw_file_path:
                 raise ValueError("Missing required 'path' parameter for cookiegli_get_skeleton")
             p = Path(raw_file_path)
@@ -409,8 +432,9 @@ class CookieGliMcpServer:
             if not file_path.is_file():
                 raise FileNotFoundError(f"File not found: {file_path}")
 
-            focus_symbol = arguments.get("focus_symbol")
-            max_tokens = arguments.get("max_tokens", 600)
+            focus_symbol = arguments.get("focus_symbol") or arguments.get("focus")
+            max_tokens_val = arguments.get("max_tokens")
+            max_tokens = int(max_tokens_val) if max_tokens_val is not None else 600
             no_cache = arguments.get("no_cache", False)
 
             with CodeSkeletonizer(str(self.workspace_root), use_cache=not no_cache) as skel:
@@ -436,7 +460,13 @@ class CookieGliMcpServer:
             else:
                 target_files = None
 
-            with BlastRadiusEngine(str(target_path), use_cache=not no_cache) as engine:
+            blast_root = target_path
+            if blast_root.is_file():
+                if not target_files:
+                    target_files = [str(blast_root)]
+                blast_root = self.workspace_root
+
+            with BlastRadiusEngine(str(blast_root), use_cache=not no_cache) as engine:
                 report = engine.analyze(
                     target_files=target_files,
                     symbol=symbol,
@@ -483,16 +513,24 @@ class CookieGliMcpServer:
 
         elif name == "cookiegli_boost":
             task = arguments.get("task", "")
-            max_tokens = int(arguments.get("max_tokens", 600))
-            with BoostEngine(str(target_path)) as boost_engine:
+            max_tokens_val = arguments.get("max_tokens")
+            max_tokens = int(max_tokens_val) if max_tokens_val is not None else 600
+            boost_root = self.workspace_root if target_path.is_file() else target_path
+            with BoostEngine(str(boost_root)) as boost_engine:
                 return boost_engine.synthesize_task_context(task, max_tokens=max_tokens)
 
         elif name == "cookiegli_search":
             query = arguments.get("query", "")
-            limit = int(arguments.get("limit", 20))
-            cache_dir = target_path / '.cookiegli'
+            limit_val = arguments.get("limit")
+            limit = int(limit_val) if limit_val is not None else 20
+            search_root = self.workspace_root if target_path.is_file() else target_path
+            cache_dir = search_root / '.cookiegli'
             with AstCache(str(cache_dir)) as cache:
                 results = cache.search_bm25(query, limit=limit)
+                if not results and cache.count() == 0:
+                    with AstScanner(str(search_root), use_cache=True, cache_dir=str(cache_dir)) as scanner:
+                        scanner.scan()
+                    results = cache.search_bm25(query, limit=limit)
             if not results:
                 return f"No symbols found matching '{query}'."
             formatted = []
@@ -509,7 +547,9 @@ class CookieGliMcpServer:
         """Processes a single JSON-RPC 2.0 request dict."""
         req_id = request.get("id")
         method = request.get("method")
-        params = request.get("params", {})
+        params = request.get("params")
+        if params is None or not isinstance(params, dict):
+            params = {}
 
         if not method:
             return {
@@ -553,7 +593,9 @@ class CookieGliMcpServer:
 
         if method == "tools/call":
             tool_name = params.get("name")
-            tool_args = params.get("arguments", {})
+            tool_args = params.get("arguments")
+            if tool_args is None or not isinstance(tool_args, dict):
+                tool_args = {}
             try:
                 res_text = self.handle_tool_call(tool_name, tool_args)
                 return {
@@ -595,7 +637,8 @@ class CookieGliMcpServer:
 
         if method == "resources/read":
             uri = params.get("uri")
-            if uri == "mcp://cookiegli/guide":
+            norm_uri = (uri or "").rstrip("/")
+            if norm_uri == "mcp://cookiegli/guide":
                 return {
                     "jsonrpc": "2.0",
                     "id": req_id,
@@ -690,7 +733,15 @@ Maintain surgical context (<600 tokens) to preserve prefix cache hits and maximi
 
 
 def main():
-    server = CookieGliMcpServer()
+    import argparse
+    parser = argparse.ArgumentParser(description="CookieGli Pure-Python MCP Server")
+    parser.add_argument("--root", default=".", help="Workspace root directory")
+    parser.add_argument("--profile", choices=["standard", "full"], default="full", help="MCP server profile (default: full)")
+    parser.add_argument("--name", default=None, help="Custom server name override")
+    args, _ = parser.parse_known_args()
+
+    root_path = Path(args.root).resolve()
+    server = CookieGliMcpServer(workspace_root=root_path, profile=args.profile, server_name=args.name)
     server.run_stdio()
 
 

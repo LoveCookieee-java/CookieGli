@@ -7,7 +7,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.9-blue.svg?style=flat-square" alt="Python 3.9+">
-  <img src="https://img.shields.io/badge/tests-152%2F152%20passing-brightgreen.svg?style=flat-square" alt="Tests Passing">
+  <img src="https://img.shields.io/badge/tests-160%2F160%20passing-brightgreen.svg?style=flat-square" alt="Tests Passing">
   <img src="https://img.shields.io/badge/token--reduction-75%25--92%25-green.svg?style=flat-square" alt="Token Reduction">
   <img src="https://img.shields.io/badge/symbol--seek-%3C0.1ms-darkgreen.svg?style=flat-square" alt="Symbol Seek Latency">
   <img src="https://img.shields.io/badge/mcp-CookieGli__Full-purple.svg?style=flat-square" alt="CookieGli_Full MCP Ready">
@@ -328,7 +328,7 @@ Cấu hình máy chủ `CookieGli_Full` trong file MCP client (AntiGravity, Clau
 
 ## 8. Kiểm Thử & Đảm Bảo Chất Lượng
 
-Dự án đi kèm bộ kiểm thử toàn diện với **152 bài test tự động**, sử dụng trực tiếp thư viện `unittest` tích hợp sẵn trong Python:
+Dự án đi kèm bộ kiểm thử toàn diện với **160 bài test tự động**, sử dụng trực tiếp thư viện `unittest` tích hợp sẵn trong Python:
 
 ```bash
 python -m unittest discover -s tests -v
@@ -336,9 +336,9 @@ python -m unittest discover -s tests -v
 
 Kết quả kiểm thử chuẩn:
 ```text
-Ran 152 tests in 3.204s
+Ran 160 tests in 3.545s
 
-OK (152/152 Tests Passed - 0 Failures, 0 Regressions)
+OK (160/160 Tests Passed - 0 Failures, 0 Regressions)
 ```
 
 Kiểm thử bao phủ đầy đủ:

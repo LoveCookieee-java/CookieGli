@@ -425,6 +425,226 @@ class TestCookieGliMcpFull(unittest.TestCase):
         self.assertEqual(resp["id"], 33)
         self.assertEqual(resp["result"]["resourceTemplates"], [])
 
+    def test_cookiegli_full_action_darwin_alias_and_auto_routing(self):
+        # 1. action="darwin" with content -> auto-routes to darwin_record
+        rec_req = {
+            "jsonrpc": "2.0",
+            "id": 40,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_full",
+                "arguments": {
+                    "action": "darwin",
+                    "params": {
+                        "name": "atomic_persist",
+                        "content": "Always use atomic file write with temp replace",
+                        "scope": "storage"
+                    }
+                }
+            }
+        }
+        rec_resp = self.server.process_rpc_request(rec_req)
+        self.assertNotIn("isError", rec_resp["result"])
+        self.assertIn("Registered and recorded", rec_resp["result"]["content"][0]["text"])
+
+        # 2. action="darwin" with query -> auto-routes to darwin_search
+        search_req = {
+            "jsonrpc": "2.0",
+            "id": 41,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_full",
+                "arguments": {
+                    "action": "darwin",
+                    "params": {
+                        "query": "atomic",
+                        "scope": "storage"
+                    }
+                }
+            }
+        }
+        search_resp = self.server.process_rpc_request(search_req)
+        self.assertNotIn("isError", search_resp["result"])
+        self.assertIn("atomic file write", search_resp["result"]["content"][0]["text"])
+
+    def test_cookiegli_full_action_aliases(self):
+        # action="symbol" alias for find_symbols
+        req_sym = {
+            "jsonrpc": "2.0",
+            "id": 42,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_full",
+                "arguments": {
+                    "action": "symbol",
+                    "params": {"query": "UserService"}
+                }
+            }
+        }
+        resp_sym = self.server.process_rpc_request(req_sym)
+        self.assertNotIn("isError", resp_sym["result"])
+        self.assertIn("UserService", resp_sym["result"]["content"][0]["text"])
+
+        # action="blast_radius" alias for blast
+        req_blast = {
+            "jsonrpc": "2.0",
+            "id": 43,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_full",
+                "arguments": {
+                    "action": "blast_radius",
+                    "params": {"file": str(self.sample_py)}
+                }
+            }
+        }
+        resp_blast = self.server.process_rpc_request(req_blast)
+        self.assertNotIn("isError", resp_blast["result"])
+        self.assertIn("BLAST_RADIUS", resp_blast["result"]["content"][0]["text"])
+
+        # action="context" alias for synthesize_context
+        req_ctx = {
+            "jsonrpc": "2.0",
+            "id": 44,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_full",
+                "arguments": {
+                    "action": "context",
+                    "params": {"task": "authenticate user"}
+                }
+            }
+        }
+        resp_ctx = self.server.process_rpc_request(req_ctx)
+        self.assertNotIn("isError", resp_ctx["result"])
+        self.assertIn("TASK CONTEXT", resp_ctx["result"]["content"][0]["text"])
+
+    def test_cookiegli_full_params_as_json_string(self):
+        req = {
+            "jsonrpc": "2.0",
+            "id": 45,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_full",
+                "arguments": {
+                    "action": "find_symbols",
+                    "params": json.dumps({"query": "UserService"})
+                }
+            }
+        }
+        resp = self.server.process_rpc_request(req)
+        self.assertNotIn("isError", resp["result"])
+        self.assertIn("UserService", resp["result"]["content"][0]["text"])
+
+    def test_process_rpc_null_params_handling(self):
+        # Null params in resources/read should return clean error without crashing server
+        req = {
+            "jsonrpc": "2.0",
+            "id": 46,
+            "method": "resources/read",
+            "params": None
+        }
+        resp = self.server.process_rpc_request(req)
+        self.assertEqual(resp["id"], 46)
+        self.assertEqual(resp["error"]["code"], -32602)
+
+        # Null arguments in tools/call should execute safely
+        req_tool = {
+            "jsonrpc": "2.0",
+            "id": 47,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_boost",
+                "arguments": None
+            }
+        }
+        resp_tool = self.server.process_rpc_request(req_tool)
+        self.assertEqual(resp_tool["id"], 47)
+        self.assertNotIn("isError", resp_tool["result"])
+
+    def test_resources_read_trailing_slash(self):
+        req = {
+            "jsonrpc": "2.0",
+            "id": 48,
+            "method": "resources/read",
+            "params": {"uri": "mcp://cookiegli/guide/"}
+        }
+        resp = self.server.process_rpc_request(req)
+        self.assertEqual(resp["id"], 48)
+        self.assertIn("contents", resp["result"])
+        self.assertIn("CookieGli Agent Decision Guide", resp["result"]["contents"][0]["text"])
+
+    def test_skeleton_file_path_and_focus_aliases(self):
+        # file_path instead of path, focus instead of focus_symbol
+        req = {
+            "jsonrpc": "2.0",
+            "id": 49,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_get_skeleton",
+                "arguments": {
+                    "file_path": str(self.sample_py),
+                    "focus": "authenticate"
+                }
+            }
+        }
+        resp = self.server.process_rpc_request(req)
+        self.assertNotIn("isError", resp["result"])
+        content = resp["result"]["content"][0]["text"]
+        self.assertIn("def authenticate", content)
+
+    def test_blast_radius_single_file_path(self):
+        # passing a file as path should work without treating the file as a directory
+        req = {
+            "jsonrpc": "2.0",
+            "id": 50,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_blast_radius",
+                "arguments": {
+                    "path": str(self.sample_py)
+                }
+            }
+        }
+        resp = self.server.process_rpc_request(req)
+        self.assertNotIn("isError", resp["result"])
+        content = resp["result"]["content"][0]["text"]
+        self.assertIn("BLAST_RADIUS", content)
+
+    def test_search_and_boost_none_token_limits(self):
+        # None max_tokens in boost
+        req_boost = {
+            "jsonrpc": "2.0",
+            "id": 51,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_boost",
+                "arguments": {
+                    "task": "testing None token budget",
+                    "max_tokens": None
+                }
+            }
+        }
+        resp_boost = self.server.process_rpc_request(req_boost)
+        self.assertNotIn("isError", resp_boost["result"])
+
+        # None limit in search
+        req_search = {
+            "jsonrpc": "2.0",
+            "id": 52,
+            "method": "tools/call",
+            "params": {
+                "name": "cookiegli_search",
+                "arguments": {
+                    "query": "UserService",
+                    "limit": None
+                }
+            }
+        }
+        resp_search = self.server.process_rpc_request(req_search)
+        self.assertNotIn("isError", resp_search["result"])
+        self.assertIn("UserService", resp_search["result"]["content"][0]["text"])
+
 
 if __name__ == "__main__":
     unittest.main()
