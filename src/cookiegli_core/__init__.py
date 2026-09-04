@@ -20,8 +20,17 @@ from .distiller import (
     StackFrame,
     clean_darwin_summary,
 )
+from .harness import (
+    HarnessEngine,
+    UserPreference,
+    AntiPattern,
+    HarnessEpisode,
+    ProjectMaturity,
+    ProjectMaturityTracker,
+    CorrectionDistiller,
+)
 
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 __all__ = [
     "AstScanner",
     "AstCache",
@@ -47,5 +56,12 @@ __all__ = [
     "StackFrame",
     "clean_darwin_summary",
     "estimate_tokens",
+    "HarnessEngine",
+    "UserPreference",
+    "AntiPattern",
+    "HarnessEpisode",
+    "ProjectMaturity",
+    "ProjectMaturityTracker",
+    "CorrectionDistiller",
 ]
 

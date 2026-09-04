@@ -131,6 +131,14 @@ class DarwinMemory:
             active = [a for a in active if a.scope == "global" or a.scope == scope or a.scope.startswith(scope + '.')]
         return sorted(active, key=lambda a: a.roi, reverse=True)
 
+    def get_preferences(self, scope: Optional[str] = None) -> List[LearnedArtifact]:
+        """Return active unpruned preferences and invariants."""
+        return [a for a in self.get_active(scope=scope) if a.artifact_type in ('preference', 'invariant')]
+
+    def get_anti_patterns(self, scope: Optional[str] = None) -> List[LearnedArtifact]:
+        """Return active unpruned anti-patterns and guards."""
+        return [a for a in self.get_active(scope=scope) if a.artifact_type in ('anti_pattern', 'guard')]
+
     def search(self, query: str = "", scope: Optional[str] = None, tags: Optional[List[str]] = None, top_k: int = 10) -> List[LearnedArtifact]:
         """Search active artifacts matching query, scope, or tags."""
         active = self.get_active(scope=scope)

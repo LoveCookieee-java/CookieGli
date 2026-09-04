@@ -23,6 +23,7 @@ from cookiegli_core.distiller import (
     clean_darwin_summary,
     resolve_darwin_state_path,
 )
+from cookiegli_core.harness import HarnessEngine
 
 
 class CookieGliMcpServer:
@@ -30,7 +31,7 @@ class CookieGliMcpServer:
 
     PROTOCOL_VERSION = "2024-11-05"
     SERVER_NAME = "cookiegli-mcp"
-    SERVER_VERSION = "2.2.0"
+    SERVER_VERSION = "2.3.0"
 
     def __init__(
         self,
@@ -47,6 +48,7 @@ class CookieGliMcpServer:
         self.genome_engine = GenomeEngine(str(self.workspace_root))
         self.state_file = resolve_darwin_state_path(self.workspace_root)
         self.darwin_memory = DarwinMemory(state_file=str(self.state_file))
+        self.harness = HarnessEngine(workspace_root=self.workspace_root)
 
     def close(self) -> None:
         """Release underlying genome engine and cache resources cleanly."""
@@ -224,13 +226,58 @@ class CookieGliMcpServer:
                         "path": {"type": "string", "description": "Repository root path"}
                     }
                 }
+            },
+            {
+                "name": "cookiegli_harness_status",
+                "description": "[09_HARNESS] cookiegli_harness_status: Returns current project maturity stage, agent alignment IQ score, active developer preferences, and anti-pattern guards.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
+                    }
+                }
+            },
+            {
+                "name": "cookiegli_harness_feedback",
+                "description": "[09_HARNESS] cookiegli_harness_feedback: Records developer praise, approval, correction, or new preference into the continuous evolution harness.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "feedback_type": {
+                            "type": "string",
+                            "enum": ["praise", "correction", "preference", "approval"],
+                            "description": "Type of feedback"
+                        },
+                        "content": {
+                            "type": "string",
+                            "description": "Feedback message or correction (e.g. 'Never use requests, prefer urllib')"
+                        },
+                        "scope": {
+                            "type": "string",
+                            "description": "Optional domain scope (e.g. core, backend.auth)",
+                            "default": "global"
+                        },
+                        "task": {"type": "string", "description": "Optional task context"}
+                    },
+                    "required": ["feedback_type", "content"]
+                }
+            },
+            {
+                "name": "cookiegli_harness_eval",
+                "description": "[09_HARNESS] cookiegli_harness_eval: Runs self-evaluating benchmark on Agent alignment, zero-defect capability, and preference retention rate.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
+                    }
+                }
             }
         ]
 
         if self.profile == "full":
             tools.insert(0, {
                 "name": "cookiegli_full",
-                "description": "[00_CENTRAL_DISPATCH] cookiegli_full: Unified polymorphic gateway dispatching to boost, search, find_symbols, skeleton, blast, distill, genome, darwin_record, darwin_search, and sync.",
+                "description": "[00_CENTRAL_DISPATCH] cookiegli_full: Unified polymorphic gateway dispatching to boost, search, find_symbols, skeleton, blast, distill, genome, darwin_record, darwin_search, sync, harness_status, harness_feedback, and harness_eval.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -246,7 +293,11 @@ class CookieGliMcpServer:
                                 "genome",
                                 "darwin_record",
                                 "darwin_search",
-                                "sync"
+                                "sync",
+                                "harness",
+                                "harness_status",
+                                "harness_feedback",
+                                "harness_eval"
                             ],
                             "description": "CookieGli action to execute"
                         },
@@ -299,6 +350,12 @@ class CookieGliMcpServer:
                 "sync": "cookiegli_sync",
                 "context": "cookiegli_synthesize_context",
                 "synthesize_context": "cookiegli_synthesize_context",
+                "harness": "cookiegli_harness_status",
+                "harness_status": "cookiegli_harness_status",
+                "harness_feedback": "cookiegli_harness_feedback",
+                "feedback": "cookiegli_harness_feedback",
+                "harness_eval": "cookiegli_harness_eval",
+                "eval": "cookiegli_harness_eval",
             }
             if action == "darwin":
                 target_tool = "cookiegli_darwin_record" if ("content" in params or "name" in params) else "cookiegli_darwin_search"
@@ -308,8 +365,9 @@ class CookieGliMcpServer:
             if not target_tool:
                 canonical = [
                     "blast", "boost", "darwin_record", "darwin_search",
-                    "distill", "find_symbols", "genome", "search",
-                    "skeleton", "sync"
+                    "distill", "find_symbols", "genome", "harness",
+                    "harness_eval", "harness_feedback", "harness_status",
+                    "search", "skeleton", "sync"
                 ]
                 raise ValueError(
                     f"Unknown action '{action}' for cookiegli_full. Valid actions: {canonical}"
@@ -540,6 +598,24 @@ class CookieGliMcpServer:
                 formatted.append(f"• [{r['entity_type']}] {r['name']} ({r['relative_path']}:{r['line_number']}){sig}{score_str}")
             return "\n".join(formatted)
 
+        elif name == "cookiegli_harness_status":
+            status = self.harness.get_status()
+            return json.dumps(status, indent=2, ensure_ascii=False)
+
+        elif name == "cookiegli_harness_feedback":
+            feedback_type = arguments.get("feedback_type", "preference")
+            content = arguments.get("content", "")
+            scope = arguments.get("scope", "global")
+            task = arguments.get("task", "")
+            if not content:
+                raise ValueError("Missing required 'content' parameter for cookiegli_harness_feedback")
+            res = self.harness.record_feedback(feedback_type=feedback_type, content=content, scope=scope, task=task)
+            return json.dumps(res, indent=2, ensure_ascii=False)
+
+        elif name == "cookiegli_harness_eval":
+            fitness = self.harness.evaluate_fitness()
+            return json.dumps(fitness, indent=2, ensure_ascii=False)
+
         else:
             raise ValueError(f"Unknown tool '{name}'")
 
@@ -692,6 +768,9 @@ class CookieGliMcpServer:
 | **Entering unfamiliar codebase or new session** | `cookiegli_get_genome` | Loads Layer 1 static codebase architecture map (<600t). | Do NOT recursively list directories. |
 | **Persisting reusable engineering rules** | `cookiegli_darwin_record` | Records rules into persistent Darwin memory with Laplace-smoothed Bayesian ROI. | Do NOT write ad-hoc notes. |
 | **Querying learned engineering patterns** | `cookiegli_darwin_search` | Searches learned rules by scope, tags, and text query. | Do NOT repeat past mistakes. |
+| **Checking project maturity & developer preferences** | `cookiegli_harness_status` | Inspects project phase (1-4), Agent Alignment IQ, active preferences, and anti-patterns. | Do NOT make assumptions about developer style or safety rules. |
+| **Receiving praise, approval, or user corrections** | `cookiegli_harness_feedback` | Learns user conventions, negative constraints (anti-patterns), and updates Bayesian confidence. | Do NOT ignore developer preferences or correction feedback. |
+| **Benchmarking Agent alignment & zero-defect fitness** | `cookiegli_harness_eval` | Runs self-evaluating benchmark of Agent adaptation, rule adherence, and safety metrics. | Do NOT guess Agent performance. |
 | **Synchronizing project rules to AI agent configs** | `cookiegli_sync` | Syncs genome and Darwin memory to CLAUDE.md, AGENTS.md, .cursorrules, etc. | Do NOT manually edit agent rule files. |
 | **Single unified multi-action gateway** | `cookiegli_full` | Central dispatch hub accepting `action` and `params`. | Ideal for clients with tool slot limits. |
 

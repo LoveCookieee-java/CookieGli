@@ -72,3 +72,14 @@ Whenever you solve a non-trivial bug, resolve a compilation error, or discover a
 - [PATTERN] **Trailing Newline Invariance & Prefix Cache Hit Preservation** `[adapters]` `[adapters, cache, regex]`: Khi thay thế bounded block bằng regex multiline ^...$, ký tự $ có thể nuốt hoặc bỏ qua trailing newline ở cuối file dẫn đến việc độ dài byte bị trồi sụt giữa các lần inject liên tiếp. Luôn bảo đảm kết quả trả về kết thúc bằng \n để duy trì file byte-stable và kích hoạt 100% prefix cache hit.
 - [PATTERN] **Dual Path Matching & Cache Miss Elimination** `[cache]` `[cache, sqlite, performance]`: Khi lưu trữ cả đường dẫn tuyệt đối lẫn tương đối trong cache database, truy vấn phải kiểm tra WHERE (relative_path = ? OR path = ?) AND mtime = ? để triệt tiêu 100% lỗi cache miss khi gọi bằng relative path.
 <!-- darwin:learnings:end -->
+
+## Developer Preferences
+<!-- cookiegli:preferences:start -->
+### 🧬 Developer Preferences & Invariant Guards
+- **Project Trajectory**: Phase 2: Expansion (Alignment Score: 89.2%)
+- [PREF:STYLE] **stdlib_first**: Prioritize pure Python standard library; zero unnecessary external dependencies. (conf: 90%)
+- [PREF:ARCHITECTURE] **token_budget_strict**: Strict token budget: Layer 1 (<600t) and Layer 2 (<600t) for 100% prefix cache hits. (conf: 90%)
+- [PREF:STYLE] `[core]` **prefer_print_raw_debug**: Prefer logging chuẩn over print raw debug (conf: 90%)
+- [GUARD] **unauthorized_file_deletion**: Do NOT delete files or directories without explicit user confirmation. Instead: ask user permission explicitly before deleting or modifying files.
+- [GUARD] `[core]` **print_raw_debug**: Do NOT print raw debug. Instead: logging chuẩn.
+<!-- cookiegli:preferences:end -->

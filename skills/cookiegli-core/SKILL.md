@@ -128,13 +128,30 @@ Whenever you resolve a non-trivial bug, overcome a tricky compiler error, or dis
 ---
 
 ### Protocol 5: Universal Multi-Target Synchronization & MCP Integration
-CookieGli v3.0 is a universal token-economy engine for all modern AI coding agents:
-- **Claude Code**: Syncs compact AST Genome and Darwin lessons into `CLAUDE.md` to trigger Anthropic's 90% prompt cache read discount (Claude Fable 5.1, Claude Opus 5).
+CookieGli is a universal token-economy engine for all modern AI coding agents:
+- **Claude Code**: Syncs compact AST Genome, Darwin lessons, and Developer Preferences into `CLAUDE.md` to trigger Anthropic's 90% prompt cache read discount (Claude Fable 5.1, Claude Opus 5).
 - **OpenAI Codex**: Syncs into `AGENTS.md` to preserve reasoning purity and prevent token waste in OpenAI GPT-6 Astra, GPT-5.6 Sol.
 - **DeepSeek, Gemini & Kimi**: Optimizes prompt prefix for DeepSeek-V4, Gemini 3.7/3.8 Flash, and Kimi K3 context caching.
 - **Google Antigravity**: Syncs to `.agents/GENOME.md` and `.agents/AGENTS.md`.
 - **Cursor & Windsurf**: Syncs to `.cursor/rules/cookiegli_context.mdc`, `.cursorrules`, and `.windsurfrules`.
-- **MCP Server**: Zero-dependency stdio JSON-RPC 2.0 server providing `cookiegli_boost`, `cookiegli_find_symbols`, `cookiegli_get_genome`, `cookiegli_get_skeleton`, `cookiegli_blast_radius`, `cookiegli_distill_error`, `cookiegli_darwin_record`, and `cookiegli_sync`.
+- **MCP Server**: Zero-dependency stdio JSON-RPC 2.0 server providing `cookiegli_boost`, `cookiegli_find_symbols`, `cookiegli_get_genome`, `cookiegli_get_skeleton`, `cookiegli_blast_radius`, `cookiegli_distill_error`, `cookiegli_darwin_record`, `cookiegli_sync`, `cookiegli_harness_status`, `cookiegli_harness_feedback`, and `cookiegli_harness_eval`.
+
+---
+
+### Protocol 6: Adaptive Evolution Harness & Developer Alignment
+CookieGli v3.1 features the **Continuous Evolution Harness**: the more you interact with the Agent, the deeper it aligns with your intent, conventions, and project trajectory.
+1. **4-Phase Project Maturity Tracking**:
+   - **Phase 1: Inception** ($M < 25$): Fast scaffolding, flexible pattern exploration.
+   - **Phase 2: Expansion** ($25 \le M < 55$): Enforce interface stability and symbol indexing.
+   - **Phase 3: Hardening** ($55 \le M < 80$): Strict zero-regression gate, surgical test targeting, high reasoning calibration.
+   - **Phase 4: Enterprise** ($M \ge 80$): Invariant lockdown; protect high fan-in hotspots ($\ge 5$).
+2. **Developer Alignment & Anti-Pattern Guards**:
+   - Captures praise and reinforces active conventions.
+   - Distills negative feedback ("do not X, instead Y") into high-priority **Anti-Pattern Guards**.
+   - Computes Bayesian Agent Alignment Score:
+     $$\text{Alignment} = (0.40 \times \text{ZeroDefectRate} + 0.35 \times (1 - \text{CorrectionRate}) + 0.25 \times \text{PreferenceAdherence}) \times 100\%$$
+3. **Adaptive Layer 2 Context Injection**:
+   - `cookiegli boost` automatically pulls active preferences, relevant guards, and maturity phase into Layer 2 Task Tail while strictly bounding total context $\le 600$ tokens.
 
 ---
 
@@ -158,24 +175,27 @@ python cli/cookiegli.py sync --target codex
 # 5. Launch pure-Python stdlib Model Context Protocol (MCP) server
 python cli/cookiegli.py mcp --root .
 
-# 6. Register a learned pattern with domain scope
+# 6. View Continuous Evolution Harness dashboard (Project Phase, Agent Alignment IQ, Active Preferences)
+python cli/cookiegli.py harness status
+
+# 7. Record developer feedback, praise, or correction rule
+python cli/cookiegli.py harness feedback --type correction --content "Do not use raw print, use logging" --scope core
+
+# 8. Run self-evaluating Agent fitness and alignment benchmark
+python cli/cookiegli.py harness eval
+
+# 9. View recent task episodes and learning trajectory
+python cli/cookiegli.py harness history --limit 10
+
+# 10. Register a learned pattern with domain scope
 python cli/cookiegli.py darwin register jwt_guard pattern "Validate expiration before decode" --scope "backend.auth" --tags "auth,security"
 
-# 7. Search patterns by scope or tags
-python cli/cookiegli.py darwin search --scope "backend" --tags "auth" --query "JWT"
-
-# 8. Evolve pool with temporal half-life decay (30 days)
-python cli/cookiegli.py darwin evolve --threshold 0.3 --max-capacity 50 --half-life 30
-
-# 9. Sync Darwin memory directly to .agents/AGENTS.md
-python cli/cookiegli.py darwin sync
-
-# 10. Two-Tier Boost: One-command team initialization (Layer 1 static anchor)
+# 11. Two-Tier Boost: One-command team initialization (Layer 1 static anchor)
 python cli/cookiegli.py boost --init
 
-# 11. Two-Tier Boost: On-demand task synthesis strictly <=600 tokens (Layer 2 dynamic tail)
+# 12. Two-Tier Boost: On-demand task synthesis strictly <=600 tokens (Layer 2 dynamic tail with Harness)
 python cli/cookiegli.py boost "Fix cache miss in AstCache relative path"
 
-# 12. Full-text BM25 symbol search via SQLite FTS5
+# 13. Full-text BM25 symbol search via SQLite FTS5
 python cli/cookiegli.py search "AstCache"
 ```

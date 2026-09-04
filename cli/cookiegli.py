@@ -44,6 +44,7 @@ from cookiegli_core import (
     DistilledLesson,
     clean_darwin_summary,
     estimate_tokens,
+    HarnessEngine,
 )
 from cookiegli_core.distiller import resolve_darwin_state_path
 
@@ -105,6 +106,101 @@ def cmd_search(args):
         print(f"  • [{r['entity_type']}] {r['name']} ({r['relative_path']}:{r['line_number']}){sig_str}{score_str}")
 
     return 0
+
+
+def cmd_harness(args):
+    root_path = Path(getattr(args, 'root', None) or getattr(args, 'path', None) or '.').resolve()
+    state_file = getattr(args, 'state', None)
+    harness = HarnessEngine(workspace_root=root_path, state_file=state_file)
+
+    subcmd = getattr(args, 'harness_cmd', None) or 'status'
+
+    if subcmd == 'status':
+        status = harness.get_status()
+        if getattr(args, 'json', False):
+            print(json.dumps(status, indent=2, ensure_ascii=False))
+            return 0
+        mat = status["maturity"]
+        print("=" * 64)
+        print("   COOKIEGLI CONTINUOUS EVOLUTION HARNESS DASHBOARD")
+        print("=" * 64)
+        print(f"Project Phase        : {mat['phase']} (Score: {mat['maturity_score']}/100)")
+        print(f"Agent Alignment IQ   : {status['alignment_score']}% (Target >= 85%)")
+        print(f"Codebase Stability   : {mat['code_stability']:.0%}")
+        print(f"Test Density Ratio   : {mat['test_density']:.2f}")
+        print(f"Architecture Hotspots: {mat['hotspot_count']}")
+        print(f"Total Task Episodes  : {status['total_episodes']}")
+        print(f"Active Preferences   : {status['preferences_count']}")
+        print(f"Anti-Pattern Guards  : {status['anti_patterns_count']}")
+        print(f"\nPhase Guidance:\n  {mat['guidance']}")
+
+        if status["active_preferences"]:
+            print("\nActive Developer Preferences:")
+            for p in status["active_preferences"][:5]:
+                print(f"  • [{p['category']}] {p['key']}: {p['description']} (conf: {p['confidence']:.0%})")
+
+        if status["active_anti_patterns"]:
+            print("\nActive Anti-Pattern Guards:")
+            for a in status["active_anti_patterns"][:3]:
+                print(f"  • {a['name']}: Do NOT {a['forbidden_action']}. Instead: {a['preferred_alternative']}.")
+
+        print("=" * 64)
+        return 0
+
+    elif subcmd == 'feedback':
+        if not getattr(args, 'content', None):
+            print("[ERROR] Missing required feedback content. Example: --content 'Never use requests, prefer urllib'")
+            return 1
+        res = harness.record_feedback(
+            feedback_type=args.type,
+            content=args.content,
+            scope=args.scope or 'global',
+            task=getattr(args, 'task', '') or ''
+        )
+        if getattr(args, 'json', False):
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+        else:
+            print(f"[HARNESS FEEDBACK] Recorded {args.type.upper()} feedback successfully.")
+            if res.get("learned_preferences"):
+                print(f"  • Learned {len(res['learned_preferences'])} new preference(s).")
+            if res.get("learned_anti_patterns"):
+                print(f"  • Registered {len(res['learned_anti_patterns'])} anti-pattern guard(s).")
+        return 0
+
+    elif subcmd == 'eval':
+        eval_res = harness.evaluate_fitness()
+        if getattr(args, 'json', False):
+            print(json.dumps(eval_res, indent=2, ensure_ascii=False))
+        else:
+            print("=" * 64)
+            print("   COOKIEGLI AGENT FITNESS & ALIGNMENT EVALUATION")
+            print("=" * 64)
+            print(f"Fitness Status       : {eval_res['fitness_status']}")
+            print(f"Alignment Score      : {eval_res['alignment_score']}%")
+            print(f"Project Stage        : {eval_res['project_phase']}")
+            print(f"Zero-Defect Pass Rate: {eval_res['zero_defect_success_rate']}")
+            print(f"Preference Adherence : {eval_res['preference_adherence_rate']}")
+            print(f"Active Guards        : {eval_res['active_guards_count']}")
+            print(f"Active Preferences   : {eval_res['active_preferences_count']}")
+            print("=" * 64)
+        return 0
+
+    elif subcmd == 'history':
+        episodes = harness.episodes
+        limit = getattr(args, 'limit', 10) or 10
+        recent = episodes[-limit:]
+        if getattr(args, 'json', False):
+            print(json.dumps([e.to_dict() for e in recent], indent=2, ensure_ascii=False))
+        else:
+            print(f"[HARNESS HISTORY] Showing last {len(recent)} task episodes:")
+            for e in reversed(recent):
+                status_mark = "PASS" if e.test_passed else "FAIL"
+                print(f"  • [{status_mark}] {e.task_prompt[:50]} (feedback: {e.feedback_type}, tokens: {e.tokens_used})")
+        return 0
+
+    else:
+        print(f"[ERROR] Unknown harness command: {subcmd}")
+        return 1
 
 
 def cmd_genome_build(args):
@@ -685,6 +781,41 @@ def main():
     p_search.add_argument('--root', default='.', help="Project root directory")
     p_search.add_argument('--json', action='store_true', help="Output results as JSON")
     p_search.set_defaults(func=cmd_search)
+
+    # Harness parser
+    p_harness = subparsers.add_parser('harness', help="Continuous evolution harness: track maturity, learn preferences, and benchmark alignment")
+    h_subs = p_harness.add_subparsers(dest='harness_cmd')
+
+    h_status = h_subs.add_parser('status', help="View project maturity, Agent IQ, and active preferences")
+    h_status.add_argument('--root', default='.', help="Project root directory")
+    h_status.add_argument('--state', help="Explicit path to harness_state.json")
+    h_status.add_argument('--json', action='store_true', help="Output results as JSON")
+    h_status.set_defaults(func=cmd_harness)
+
+    h_feed = h_subs.add_parser('feedback', help="Record developer praise, approval, correction, or new preference")
+    h_feed.add_argument('--type', choices=['praise', 'correction', 'preference', 'approval'], default='preference', help="Type of feedback")
+    h_feed.add_argument('--content', required=True, help="Feedback content or correction rule")
+    h_feed.add_argument('--scope', default='global', help="Domain scope namespace (e.g. core, backend.auth)")
+    h_feed.add_argument('--task', default='', help="Optional task context description")
+    h_feed.add_argument('--root', default='.', help="Project root directory")
+    h_feed.add_argument('--state', help="Explicit path to harness_state.json")
+    h_feed.add_argument('--json', action='store_true', help="Output results as JSON")
+    h_feed.set_defaults(func=cmd_harness)
+
+    h_eval = h_subs.add_parser('eval', help="Run self-evaluating benchmark on Agent alignment and zero-defect capability")
+    h_eval.add_argument('--root', default='.', help="Project root directory")
+    h_eval.add_argument('--state', help="Explicit path to harness_state.json")
+    h_eval.add_argument('--json', action='store_true', help="Output results as JSON")
+    h_eval.set_defaults(func=cmd_harness)
+
+    h_hist = h_subs.add_parser('history', help="View recent task episodes and learning trajectory")
+    h_hist.add_argument('--limit', type=int, default=10, help="Maximum number of episodes to show (default: 10)")
+    h_hist.add_argument('--root', default='.', help="Project root directory")
+    h_hist.add_argument('--state', help="Explicit path to harness_state.json")
+    h_hist.add_argument('--json', action='store_true', help="Output results as JSON")
+    h_hist.set_defaults(func=cmd_harness)
+
+    p_harness.set_defaults(func=cmd_harness)
 
     args = parser.parse_args()
     return args.func(args)

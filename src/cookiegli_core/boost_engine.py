@@ -18,6 +18,7 @@ from .genome_engine import GenomeEngine, estimate_tokens
 from .adapters import TargetManager
 from .darwin_memory import DarwinMemory
 from .distiller import resolve_darwin_state_path
+from .harness import HarnessEngine
 
 
 def compute_reasoning_calibration(blast_depth: int, impact_level: str) -> str:
@@ -80,6 +81,7 @@ class BoostEngine:
 
         self.blast_engine = BlastRadiusEngine(str(self.workspace_root), use_cache=use_cache, cache_dir=str(self.cache_dir))
         self.skeletonizer = CodeSkeletonizer(str(self.workspace_root), use_cache=use_cache, cache_dir=str(self.cache_dir))
+        self.harness = HarnessEngine(workspace_root=self.workspace_root)
 
     def close(self) -> None:
         """Release SQLite and engine resources cleanly."""
@@ -137,11 +139,13 @@ class BoostEngine:
             darwin_text = memory.to_markdown_summary(max_tokens=400, include_telemetry=False)
 
         # Step 4: Sync to targets
+        harness_text = self.harness.to_markdown_summary(max_tokens=300)
         synced = TargetManager.sync(
             target=target,
             workspace_root=self.workspace_root,
             genome_text=genome_text,
-            darwin_text=darwin_text
+            darwin_text=darwin_text,
+            preferences_text=harness_text
         )
 
         return {
@@ -245,8 +249,18 @@ class BoostEngine:
                     resolved_file = cand
                     break
 
+        # 6.5 Harness context slice (preferences, guards, project maturity)
+        target_files_list = [target_file] if target_file else (report.target_files if report else None)
+        hotspot_count = len(report.direct_consumers) if report and report.direct_consumers else 0
+        harness_block = self.harness.get_relevant_context(
+            task=task_clean,
+            target_files=target_files_list,
+            max_tokens=85,
+            hotspot_count=hotspot_count
+        )
+
         # Calculate budget available for skeleton
-        fixed_text = f"[LAYER 2: DYNAMIC TASK TAIL | Task: {task_clean[:80]}]\n\n{calib_block}\n\n{sym_block}\n\n{test_block}"
+        fixed_text = f"[LAYER 2: DYNAMIC TASK TAIL | Task: {task_clean[:80]}]\n\n{calib_block}\n\n{harness_block}\n\n{sym_block}\n\n{test_block}"
         fixed_tokens = estimate_tokens(fixed_text)
         skel_token_budget = max(50, max_tokens - fixed_tokens - 40)
 
@@ -269,6 +283,7 @@ class BoostEngine:
         slices = [
             f"[LAYER 2: DYNAMIC TASK TAIL | Task: {task_clean[:80]}]",
             calib_block,
+            harness_block,
             sym_block,
         ]
         if skel_block:
@@ -280,7 +295,7 @@ class BoostEngine:
         # Strict token constraint enforcement: <= max_tokens
         if estimate_tokens(result) > max_tokens:
             if skel_block and len(slices) >= 4:
-                overhead = estimate_tokens("\n\n".join([slices[0], slices[1], slices[2], slices[-1]]))
+                overhead = estimate_tokens("\n\n".join([s for s in slices if s != skel_block]))
                 allowed_chars = max(100, (max_tokens - overhead - 20) * 4)
                 if len(skel_block) > allowed_chars:
                     trimmed_skel = skel_block[:allowed_chars]
@@ -289,7 +304,7 @@ class BoostEngine:
                         trimmed_skel = trimmed_skel[:last_nl]
                     if not trimmed_skel.endswith("```"):
                         trimmed_skel += "\n// ... [compacted for token budget]\n```"
-                    slices[-2] = trimmed_skel
+                    slices[slices.index(skel_block)] = trimmed_skel
                     result = "\n\n".join(slices)
 
             while estimate_tokens(result) > max_tokens and len(result) > 100:
@@ -308,5 +323,18 @@ class BoostEngine:
                         result = body[:last_nl] + "\n```"
                     else:
                         break
+
+        # Log implicit task episode to Harness
+        try:
+            self.harness.record_episode(
+                task=task_clean,
+                touched_files=target_files_list or [],
+                tests_executed=[test_cmd] if test_cmd else [],
+                test_passed=True,
+                feedback_type="implicit_success",
+                tokens_used=estimate_tokens(result)
+            )
+        except Exception:
+            pass
 
         return result
