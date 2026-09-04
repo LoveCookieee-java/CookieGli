@@ -6,11 +6,13 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/version-v3.1.0-blue.svg?style=flat-square" alt="Version v3.1.0">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.9-blue.svg?style=flat-square" alt="Python 3.9+">
-  <img src="https://img.shields.io/badge/tests-160%2F160%20passing-brightgreen.svg?style=flat-square" alt="Tests Passing">
+  <img src="https://img.shields.io/badge/tests-179%2F179%20passing-brightgreen.svg?style=flat-square" alt="Tests Passing">
   <img src="https://img.shields.io/badge/token--reduction-75%25--92%25-green.svg?style=flat-square" alt="Token Reduction">
   <img src="https://img.shields.io/badge/symbol--seek-%3C0.1ms-darkgreen.svg?style=flat-square" alt="Symbol Seek Latency">
-  <img src="https://img.shields.io/badge/mcp-CookieGli__Full-purple.svg?style=flat-square" alt="CookieGli_Full MCP Ready">
+  <img src="https://img.shields.io/badge/mcp-CookieGli__Full%20v2.3-purple.svg?style=flat-square" alt="CookieGli_Full MCP Ready">
+  <img src="https://img.shields.io/badge/harness-Continuous%20Evolution-blueviolet.svg?style=flat-square" alt="Continuous Evolution Harness">
   <img src="https://img.shields.io/badge/dependencies-0%20(stdlib%20only)-orange.svg?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="MIT License">
 </p>
@@ -29,6 +31,7 @@
   - [3.6. Bản Đồ Kiến Trúc Dự Án (Project AST Genome) & Chuẩn Hóa Token-0](#36-bản-đồ-kiến-trúc-dự-án-project-ast-genome--chuẩn-hóa-token-0)
   - [3.7. Hỗ Trợ Dự Án Monorepo Phân Cấp](#37-hỗ-trợ-dự-án-monorepo-phân-cấp)
   - [3.8. Bộ Nhớ Kinh Nghiệm Thích Ứng (Darwin Memory Pool)](#38-bộ-nhớ-kinh-nghiệm-thích-ứng-darwin-memory-pool)
+  - [3.9. Khung Học Hỏi Thích Ứng & Căn Chỉnh Ý Định (Continuous Evolution Harness & Developer Alignment)](#39-khung-học-hỏi-thích-ứng--căn-chỉnh-ý-định-continuous-evolution-harness--developer-alignment)
 - [4. Số Liệu Kiểm Định Thực Nghiệm](#4-số-liệu-kiểm-định-thực-nghiệm)
 - [5. Cài Đặt & Bắt Đầu Nhanh](#5-cài-đặt--bắt-đầu-nhanh)
 - [6. Tra Cứu Lệnh CLI](#6-tra-cứu-lệnh-cli)
@@ -51,7 +54,8 @@ Khi làm việc trong các dự án phần mềm có quy mô vừa và lớn, vi
 2. **Chỉ mục B-Tree tra cứu nhanh:** Lưu trữ vị trí symbol, chữ ký hàm, docstring trong SQLite WAL với độ trễ tìm kiếm dưới 0.1ms.
 3. **Phân tích tác động đồ thị ngược (Blast Radius):** Dự đoán chính xác các file bị ảnh hưởng khi có git diff và chỉ điểm đúng test suite tối thiểu cần chạy.
 4. **Tự động trích xuất bài học từ traceback:** Phân tích stack trace từ Python, Node/Jest, Go, Rust và diff sửa lỗi thành quy tắc thực chiến có đánh số điểm tin cậy Bayesian.
-5. **Thuần Python chuẩn (Zero Dependencies):** Chạy trực tiếp từ Python 3.9+ mà không cần cài đặt thêm thư viện bên ngoài qua pip.
+5. **Khung học hỏi thích ứng & căn chỉnh ý định (Continuous Evolution Harness):** Càng làm việc, Agent càng hiểu thói quen của developer, tự động học phong cách code và anti-pattern qua phản hồi tự nhiên (Anh/Việt), đo lường chỉ số **Bayesian Alignment IQ** và tự động hiệu chuẩn hành vi theo 4 giai đoạn trưởng thành của dự án.
+6. **Thuần Python chuẩn (Zero Dependencies):** Chạy trực tiếp từ Python 3.9+ mà không cần cài đặt thêm thư viện bên ngoài qua pip.
 
 ---
 
@@ -82,10 +86,21 @@ Khi làm việc trong các dự án phần mềm có quy mô vừa và lớn, vi
                         │ Architectural Map (<600t) │
                         └─────────────┬─────────────┘
                                       │
+                ┌─────────────────────┴─────────────────────┐
+                ▼                                           ▼
+     ┌─────────────────────┐                     ┌─────────────────────┐
+     │ Error Distiller     │                     │ Continuous Evolution│
+     │ & Darwin Memory     │                     │ Harness Engine      │
+     │ (Laplace Decay ROI) │                     │ (Alignment IQ & ML) │
+     └──────────┬──────────┘                     └──────────┬──────────┘
+                │                                           │
+                └─────────────────────┬─────────────────────┘
+                                      │
                                       ▼
                         ┌───────────────────────────┐
-                        │ Error & Traceback         │
-                        │ Distiller (Darwin Memory) │
+                        │ Two-Tier Boost Engine     │
+                        │ Layer 1 Anchor + Layer 2  │
+                        │ Dynamic Task Tail (<=600t)│
                         └─────────────┬─────────────┘
                                       │
                 ┌─────────────────────┴─────────────────────┐
@@ -141,6 +156,21 @@ Bộ xử lý cấu trúc hỗ trợ phân tích và rút gọn mã nguồn nhi�
 * Lưu trữ các quy tắc, mẫu thiết kế và bài học thực chiến vào `.cookiegli/darwin_state.json`.
 * Tách riêng telemetry số liệu nổi khỏi tệp markdown để bảo vệ prefix cache.
 * Sử dụng công thức làm mượt Bayesian (Laplace Smoothing) kết hợp chu kỳ bán rã thời gian ($t_{1/2} = 30$ ngày) để tự động tăng ưu tiên các kinh nghiệm thực sự hiệu quả và loại bỏ dần các quy tắc lỗi thời.
+
+### 3.9. Khung Học Hỏi Thích Ứng & Căn Chỉnh Ý Định (Continuous Evolution Harness & Developer Alignment)
+Hệ thống Harness cung cấp cơ chế học hỏi liên tục khép kín (**Closed-Loop Feedback**), biến Agent thành một trợ lý cá nhân hóa: **càng sử dụng nhiều, Agent càng hiểu thói quen của developer, thông minh hơn và ít lặp lại sai lầm**:
+* **Bộ bóc tách phản hồi tự nhiên (Correction Distiller):** Tự động phân tích các câu nhận xét bằng tiếng Việt hoặc tiếng Anh (ví dụ: *"Không bao giờ dùng print raw debug, hãy dùng logging chuẩn"*, *"Always use dataclasses for configs"*) thành các **UserPreference** và **AntiPattern** có độ tin cậy định lượng.
+* **Chỉ số thấu hiểu Bayesian Alignment IQ:**
+  $$\text{Alignment IQ} = 0.5 \cdot \text{Adherence Rate} + 0.3 \cdot (1 - \text{Violation Severity}) + 0.2 \cdot \text{Zero-Defect Rate}$$
+  Đo lường mức độ tương thích giữa Agent và developer theo thời gian thực (mục tiêu chuẩn $\ge 85\%$).
+* **Theo dõi vòng đời trưởng thành của dự án (4-Phase Maturity Tracking):**
+  $$\text{Maturity Score} = 0.35 \cdot \text{Code Stability} + 0.35 \cdot \min\left(\frac{\text{Test Ratio}}{1.2}, 1.0\right) + 0.30 \cdot \left(1 - \frac{\text{Hotspots}}{10}\right)$$
+  - **Phase 1: Inception** ($< 25$): Tập trung dựng khung nhanh, cho phép linh hoạt mô hình.
+  - **Phase 2: Expansion** ($25 - 55$): Siết chặt hợp đồng interface, liên tục đồng bộ cache biểu tượng.
+  - **Phase 3: Stabilization** ($55 - 80$): Kiểm soát chặt Blast Radius, ngăn chặn mọi rủi ro regression.
+  - **Phase 4: Hardened / Production** ($\ge 80$): Quy chuẩn nghiêm ngặt tuyệt đối, zero defect, gating 100% tests.
+* **Bơm ngữ cảnh Layer 2 tuân thủ Token Budget ($\le 600$ tokens):** Bơm Stage Guidance và Active Preferences vào Layer 2 Task Tail của các Frontier Models 2026 nhưng luôn nén chặt trong giới hạn $\le 600$ tokens để bảo vệ 100% Prefix Cache Read Discount.
+* **Lưu trữ nguyên tử an toàn (Atomic State Persistence):** Quản trị trạng thái độc lập tại `.cookiegli/harness_state.json` thông qua `tempfile` và `os.replace`, loại bỏ hoàn toàn nguy cơ hỏng file khi bị ngắt tiến trình đột ngột.
 
 ---
 
@@ -245,6 +275,21 @@ python cli/cookiegli.py genome build . --save .agents/GENOME.md
 python cli/cookiegli.py sync --target all --root .
 ```
 
+**10. Quản lý khung học hỏi & căn chỉnh ý định (Continuous Evolution Harness):**
+```bash
+# Xem dashboard độ trưởng thành dự án và chỉ số Bayesian Alignment IQ:
+python cli/cookiegli.py harness status
+
+# Dạy Agent thói quen mới hoặc chặn anti-pattern bằng ngôn ngữ tự nhiên (Anh/Việt):
+python cli/cookiegli.py harness feedback "Không bao giờ dùng print raw debug, hãy dùng logging chuẩn"
+
+# Đánh giá mức độ tuân thủ quy tắc và độ phù hợp của Agent:
+python cli/cookiegli.py harness eval
+
+# Xem lịch sử các episode tác vụ đã phân tích:
+python cli/cookiegli.py harness history --limit 5
+```
+
 ---
 
 ## 6. Tra Cứu Lệnh CLI
@@ -262,6 +307,7 @@ Mọi thao tác được thực hiện thống nhất qua tệp `cli/cookiegli.p
 | `darwin` | `darwin register / use / search / list / evolve / sync` | Quản lý vòng đời lưu trữ và đào thải bài học kinh nghiệm. |
 | `boost` | `boost [--init] [task] [--max-tokens N] [--json]` | Khởi tạo dự án 1 lệnh (Layer 1 tĩnh) hoặc sinh lát cắt ngữ cảnh động (Layer 2) kèm hiệu chuẩn suy luận 2026. |
 | `search` | `search <query> [--limit N]` | Tra cứu toàn văn BM25+ chuẩn công nghiệp trên SQLite FTS5 (<0.5ms). |
+| `harness` | `harness status / feedback / eval / history` | Quản lý độ trưởng thành (Project Maturity), học phản hồi tự nhiên (Anh/Việt) và đo Bayesian Alignment IQ. |
 | `sync` | `sync [--target TARGET] [--root PATH]` | Đồng bộ vào `claude`, `codex`, `antigravity`, `cursor`, `windsurf` hoặc `all`. |
 | `mcp` | `mcp [--profile standard\|full] [--name NAME] [--root PATH]` | Khởi chạy máy chủ MCP qua giao thức STDIO JSON-RPC 2.0 (mặc định profile: `full` - CookieGli_Full). |
 
@@ -283,6 +329,9 @@ CookieGli cung cấp kiến trúc MCP hợp nhất **`CookieGli_Full`** với h�
 * **`[06_ARCHITECTURE] cookiegli_get_genome`**: Nạp bản đồ kiến trúc Layer 1 tĩnh của toàn bộ dự án (<600t).
 * **`[07_DARWIN_MEMORY] cookiegli_darwin_record` & `cookiegli_darwin_search`**: Ghi nhớ và truy vấn kinh nghiệm kỹ thuật theo Bayesian Laplace ROI.
 * **`[08_TARGET_SYNC] cookiegli_sync`**: Đồng bộ bản đồ kiến trúc và bộ nhớ kinh nghiệm vào `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.windsurfrules`.
+* **`[09_HARNESS] cookiegli_harness_status`**: Lấy dashboard trạng thái độ trưởng thành dự án, chỉ số Bayesian Alignment IQ, các thói quen đang kích hoạt và anti-pattern guards.
+* **`[09_HARNESS] cookiegli_harness_feedback`**: Tiếp nhận và bóc tách nhận xét sửa đổi của developer bằng tiếng Việt hoặc Anh để cập nhật thói quen hoặc chặn anti-pattern.
+* **`[09_HARNESS] cookiegli_harness_eval`**: Đánh giá toàn diện mức độ tuân thủ, độ phù hợp (fitness status) và tỷ lệ zero-defect của Agent.
 
 ### 7.2. Ma Trận Hướng Dẫn Ra Quyết Định Của Agent (Agent Disambiguation Matrix)
 
@@ -294,6 +343,8 @@ CookieGli cung cấp kiến trúc MCP hợp nhất **`CookieGli_Full`** với h�
 | **Cần sửa code 1 hàm cụ thể trong file** | `cookiegli_get_skeleton` | Truyền `focus_symbol="ten_ham"`, giữ nguyên văn hàm cần sửa, gập toàn bộ hàm xung quanh để tiết kiệm token. | Không đọc toàn bộ file thô (raw dump). |
 | **Chuẩn bị sửa code hoặc sau khi sửa code** | `cookiegli_blast_radius` | Phân tích đồ thị phụ thuộc ngược, chỉ điểm đúng file test cần chạy. | Không chạy toàn bộ test suite khổng lồ. |
 | **Khi gặp lỗi test / traceback / compiler error** | `cookiegli_distill_lesson` | Bóc tách traceback, tạo bài học Darwin, gán nhãn scope và tính điểm Bayesian ROI. | Không tự sửa mà quên lưu kinh nghiệm. |
+| **Khi developer góp ý / nhắc nhở cách code** | `cookiegli_harness_feedback` | Bóc tách nhận xét tự nhiên (Anh/Việt) thành preference / anti-pattern để tự động ghi nhớ mãi mãi. | Không chỉ "vâng dạ" trong chat mà quên nạp vào harness memory. |
+| **Kiểm tra độ trưởng thành dự án & Alignment IQ** | `cookiegli_harness_status` hoặc `cookiegli_harness_eval` | Trả về dashboard 4-phase maturity score, Alignment IQ, tỷ lệ tuân thủ và danh sách active guards. | Không đoán mò giai đoạn phát triển của dự án. |
 | **Vào repo lạ hoặc bắt đầu session mới** | `cookiegli_get_genome` | Nạp Layer 1 bản đồ kiến trúc tĩnh (<600t). | Không quét thủ công từng thư mục. |
 | **Muốn dùng 1 tool duy nhất điều phối tất cả** | `cookiegli_full` | Truyền `action` tương ứng, máy chủ tự xử lý và trả về kết quả chuẩn hóa. | Dành cho các client chỉ hỗ trợ ít tool slots. |
 
@@ -328,7 +379,7 @@ Cấu hình máy chủ `CookieGli_Full` trong file MCP client (AntiGravity, Clau
 
 ## 8. Kiểm Thử & Đảm Bảo Chất Lượng
 
-Dự án đi kèm bộ kiểm thử toàn diện với **160 bài test tự động**, sử dụng trực tiếp thư viện `unittest` tích hợp sẵn trong Python:
+Dự án đi kèm bộ kiểm thử toàn diện với **179 bài test tự động**, sử dụng trực tiếp thư viện `unittest` tích hợp sẵn trong Python:
 
 ```bash
 python -m unittest discover -s tests -v
@@ -336,14 +387,15 @@ python -m unittest discover -s tests -v
 
 Kết quả kiểm thử chuẩn:
 ```text
-Ran 160 tests in 3.545s
+Ran 179 tests in 3.593s
 
-OK (160/160 Tests Passed - 0 Failures, 0 Regressions)
+OK (179/179 Tests Passed - 0 Failures, 0 Regressions)
 ```
 
 Kiểm thử bao phủ đầy đủ:
+* Khung học hỏi liên tục (Harness Engine), bóc tách phản hồi tự nhiên (Anh/Việt), tính toán Bayesian Alignment IQ và chuyển pha trưởng thành dự án.
 * Trích xuất AST và phương thức trên Python, TypeScript, Go, Rust, Java.
-* Cơ chế khóa file và chỉ mục B-Tree trên SQLite WAL.
+* Cơ chế khóa file và chỉ mục B-Tree / FTS5 BM25+ trên SQLite WAL.
 * Nén 4 tầng của bộ tạo skeleton và kiểm tra thụt lề chuẩn.
 * Đồ thị phụ thuộc ngược và thuật toán BFS chống lặp chu trình.
 * Phân giải traceback đa nền tảng và cơ chế tự động khôi phục quy tắc cũ.
