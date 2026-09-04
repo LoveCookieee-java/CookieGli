@@ -391,7 +391,9 @@ def cmd_blast(args):
 
 def cmd_mcp(args):
     root_path = Path(args.root or '.').resolve()
-    server = CookieGliMcpServer(workspace_root=root_path)
+    profile = getattr(args, 'profile', 'full')
+    name = getattr(args, 'name', None)
+    server = CookieGliMcpServer(workspace_root=root_path, profile=profile, server_name=name)
     server.run_stdio()
     return 0
 
@@ -616,6 +618,8 @@ def main():
     # Universal MCP Server parser
     p_mcp = subparsers.add_parser('mcp', help="Run pure Python stdlib MCP server over STDIO")
     p_mcp.add_argument('--root', default='.', help="Workspace root directory")
+    p_mcp.add_argument('--profile', choices=['standard', 'full'], default='full', help="MCP server profile (default: full)")
+    p_mcp.add_argument('--name', default=None, help="Custom server name override")
     p_mcp.set_defaults(func=cmd_mcp)
 
     # Symbol index search parser

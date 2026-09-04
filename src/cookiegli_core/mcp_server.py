@@ -32,8 +32,18 @@ class CookieGliMcpServer:
     SERVER_NAME = "cookiegli-mcp"
     SERVER_VERSION = "2.2.0"
 
-    def __init__(self, workspace_root: Optional[Path] = None):
+    def __init__(
+        self,
+        workspace_root: Optional[Path] = None,
+        profile: str = "standard",
+        server_name: Optional[str] = None
+    ):
         self.workspace_root = (workspace_root or Path.cwd()).resolve()
+        self.profile = (profile or "standard").lower()
+        if self.profile == "full" or server_name:
+            self.SERVER_NAME = server_name or "CookieGli_Full"
+        else:
+            self.SERVER_NAME = server_name or "cookiegli-mcp"
         self.genome_engine = GenomeEngine(str(self.workspace_root))
         self.state_file = resolve_darwin_state_path(self.workspace_root)
         self.darwin_memory = DarwinMemory(state_file=str(self.state_file))
@@ -58,75 +68,36 @@ class CookieGliMcpServer:
 
     def get_tools_manifest(self) -> List[Dict[str, Any]]:
         """Returns the list of available MCP tools and schemas."""
-        return [
+        tools = [
             {
-                "name": "cookiegli_get_genome",
-                "description": "Extracts high-density (<600 tokens) AST codebase architecture genome.",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
-                    }
-                }
-            },
-            {
-                "name": "cookiegli_synthesize_context",
-                "description": "Synthesizes surgical targeted context for a specific coding or debugging task.",
+                "name": "cookiegli_boost",
+                "description": "[01_TASK_BOOST] cookiegli_boost: Primary entrypoint for coding/debugging tasks. Synthesizes Layer 2 dynamic context (<600t) with BM25 symbols + focus skeleton + 2026 reasoning effort.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "task": {"type": "string", "description": "The specific task description or query"},
+                        "max_tokens": {"type": "integer", "description": "Maximum token budget (default: 600)", "default": 600},
                         "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
                     },
                     "required": ["task"]
                 }
             },
             {
-                "name": "cookiegli_darwin_record",
-                "description": "Records an engineering failure-to-success pattern with Laplace-smoothed Bayesian ROI.",
+                "name": "cookiegli_search",
+                "description": "[02_SYMBOL_IR] cookiegli_search: Industrial Okapi BM25+ full-text search across codebase symbols using SQLite FTS5 BM25+ ranking.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "name": {"type": "string", "description": "Short identifier for the artifact"},
-                        "artifact_type": {"type": "string", "enum": ["pattern", "lesson", "tool"], "default": "pattern"},
-                        "content": {"type": "string", "description": "Concrete actionable learning rule"},
-                        "success": {"type": "boolean", "description": "Whether the outcome was successful", "default": True},
-                        "scope": {"type": "string", "description": "Domain namespace e.g. backend.auth, frontend.ui"},
-                        "tags": {"type": "array", "items": {"type": "string"}, "description": "Keywords for indexing"}
+                        "query": {"type": "string", "description": "Symbol name or search terms"},
+                        "limit": {"type": "integer", "description": "Maximum number of results to return", "default": 20},
+                        "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
                     },
-                    "required": ["name", "content"]
-                }
-            },
-            {
-                "name": "cookiegli_darwin_search",
-                "description": "Searches learned operational patterns by query, domain scope, and tags.",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "query": {"type": "string", "description": "Text query to search for"},
-                        "scope": {"type": "string", "description": "Domain scope filter"},
-                        "tags": {"type": "array", "items": {"type": "string"}, "description": "Tag filters"}
-                    }
-                }
-            },
-            {
-                "name": "cookiegli_sync",
-                "description": "Synchronizes AST genome and Darwin memories to AI agent configs (claude, codex, antigravity, cursor, windsurf, all).",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {
-                        "target": {
-                            "type": "string",
-                            "enum": ["claude", "codex", "antigravity", "cursor", "windsurf", "all"],
-                            "default": "all"
-                        },
-                        "path": {"type": "string", "description": "Repository root path"}
-                    }
+                    "required": ["query"]
                 }
             },
             {
                 "name": "cookiegli_find_symbols",
-                "description": "Fast indexed B-Tree symbol search across the codebase (classes, functions, methods) with sub-millisecond retrieval.",
+                "description": "[02_SYMBOL_BTREE] cookiegli_find_symbols: Sub-millisecond exact B-Tree symbol lookup for known identifier names (classes, functions, methods).",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -145,7 +116,7 @@ class CookieGliMcpServer:
             },
             {
                 "name": "cookiegli_get_skeleton",
-                "description": "Extracts compact code skeleton with folded function bodies and optional verbatim focus symbol.",
+                "description": "[03_CODE_SKELETON] cookiegli_get_skeleton: Extract folded code skeleton preserving verbatim focus symbol.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -159,12 +130,13 @@ class CookieGliMcpServer:
             },
             {
                 "name": "cookiegli_blast_radius",
-                "description": "Analyzes Git blast radius and downstream dependency impact graph for modified or specified files.",
+                "description": "[04_IMPACT_ANALYSIS] cookiegli_blast_radius: Forward-to-ingress dependency graph & minimal targeted test suite for modified or specified files.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "path": {"type": "string", "description": "Repository path (defaults to workspace root)"},
                         "file": {"type": "string", "description": "Specific target file to analyze"},
+                        "files": {"type": "array", "items": {"type": "string"}, "description": "List of target files to analyze"},
                         "symbol": {"type": "string", "description": "Specific symbol name to analyze"},
                         "max_depth": {"type": "integer", "description": "Maximum BFS traversal depth (default: 3)", "default": 3},
                         "max_tokens": {"type": "integer", "description": "Maximum token budget for compact output (default: 250)", "default": 250},
@@ -174,7 +146,7 @@ class CookieGliMcpServer:
             },
             {
                 "name": "cookiegli_distill_lesson",
-                "description": "Distills test failures, runtime panics, or stack traces into actionable Darwin learned patterns with Bayesian ROI.",
+                "description": "[05_ERROR_DISTILLER] cookiegli_distill_lesson: Distill traceback/panics into Darwin rules with Bayesian ROI.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -189,35 +161,138 @@ class CookieGliMcpServer:
                 }
             },
             {
-                "name": "cookiegli_boost",
-                "description": "Synthesizes surgical Layer 2 Dynamic Task Tail context (BM25 symbols, blast radius, focus skeleton, 2026 reasoning calibration) strictly <= 600 tokens.",
+                "name": "cookiegli_get_genome",
+                "description": "[06_ARCHITECTURE] cookiegli_get_genome: High-density Layer 1 static codebase architecture map (<600t).",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
+                    }
+                }
+            },
+            {
+                "name": "cookiegli_synthesize_context",
+                "description": "[01_TASK_CONTEXT] cookiegli_synthesize_context: Synthesizes surgical targeted context for a specific coding or debugging task.",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
                         "task": {"type": "string", "description": "The specific task description or query"},
-                        "max_tokens": {"type": "integer", "description": "Maximum token budget (default: 600)", "default": 600},
                         "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
                     },
                     "required": ["task"]
                 }
             },
             {
-                "name": "cookiegli_search",
-                "description": "Full-text symbol search using SQLite FTS5 BM25+ ranking across codebase symbols.",
+                "name": "cookiegli_darwin_record",
+                "description": "[07_DARWIN_MEMORY] cookiegli_darwin_record: Knowledge persistence with Bayesian ROI (Laplace-smoothed).",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "query": {"type": "string", "description": "Symbol name or search terms"},
-                        "limit": {"type": "integer", "description": "Maximum number of results to return", "default": 20},
-                        "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
+                        "name": {"type": "string", "description": "Short identifier for the artifact"},
+                        "artifact_type": {"type": "string", "enum": ["pattern", "lesson", "tool"], "default": "pattern"},
+                        "content": {"type": "string", "description": "Concrete actionable learning rule"},
+                        "success": {"type": "boolean", "description": "Whether the outcome was successful", "default": True},
+                        "scope": {"type": "string", "description": "Domain namespace e.g. backend.auth, frontend.ui"},
+                        "tags": {"type": "array", "items": {"type": "string"}, "description": "Keywords for indexing"}
                     },
-                    "required": ["query"]
+                    "required": ["name", "content"]
+                }
+            },
+            {
+                "name": "cookiegli_darwin_search",
+                "description": "[07_DARWIN_MEMORY] cookiegli_darwin_search: Searches learned operational patterns by query, domain scope, and tags.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Text query to search for"},
+                        "scope": {"type": "string", "description": "Domain scope filter"},
+                        "tags": {"type": "array", "items": {"type": "string"}, "description": "Tag filters"}
+                    }
+                }
+            },
+            {
+                "name": "cookiegli_sync",
+                "description": "[08_TARGET_SYNC] cookiegli_sync: Sync rules to CLAUDE.md, AGENTS.md, .cursorrules, .windsurfrules.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "target": {
+                            "type": "string",
+                            "enum": ["claude", "codex", "antigravity", "cursor", "windsurf", "all"],
+                            "default": "all"
+                        },
+                        "path": {"type": "string", "description": "Repository root path"}
+                    }
                 }
             }
         ]
 
+        if self.profile == "full":
+            tools.insert(0, {
+                "name": "cookiegli_full",
+                "description": "[00_CENTRAL_DISPATCH] cookiegli_full: Unified polymorphic gateway dispatching to boost, search, find_symbols, skeleton, blast, distill, genome, darwin_record, darwin_search, and sync.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "enum": [
+                                "boost",
+                                "search",
+                                "find_symbols",
+                                "skeleton",
+                                "blast",
+                                "distill",
+                                "genome",
+                                "darwin_record",
+                                "darwin_search",
+                                "sync"
+                            ],
+                            "description": "CookieGli action to execute"
+                        },
+                        "params": {
+                            "type": "object",
+                            "description": "Parameters for the chosen action"
+                        }
+                    },
+                    "required": ["action"]
+                }
+            })
+
+        return tools
+
     def handle_tool_call(self, name: str, arguments: Dict[str, Any]) -> str:
         """Executes an MCP tool call and returns text result."""
+        if name == "cookiegli_full":
+            action = arguments.get("action")
+            if not action:
+                raise ValueError("Missing required 'action' parameter for cookiegli_full")
+            params = arguments.get("params")
+            if not isinstance(params, dict):
+                params = {}
+            for k, v in arguments.items():
+                if k not in ("action", "params") and k not in params:
+                    params[k] = v
+
+            action_map = {
+                "boost": "cookiegli_boost",
+                "search": "cookiegli_search",
+                "find_symbols": "cookiegli_find_symbols",
+                "skeleton": "cookiegli_get_skeleton",
+                "blast": "cookiegli_blast_radius",
+                "distill": "cookiegli_distill_lesson",
+                "genome": "cookiegli_get_genome",
+                "darwin_record": "cookiegli_darwin_record",
+                "darwin_search": "cookiegli_darwin_search",
+                "sync": "cookiegli_sync",
+            }
+            target_tool = action_map.get(action)
+            if not target_tool:
+                raise ValueError(
+                    f"Unknown action '{action}' for cookiegli_full. Valid actions: {sorted(action_map.keys())}"
+                )
+            return self.handle_tool_call(target_tool, params)
+
         raw_path = arguments.get("path")
         if raw_path:
             p = Path(raw_path)
@@ -451,7 +526,8 @@ class CookieGliMcpServer:
                 "result": {
                     "protocolVersion": self.PROTOCOL_VERSION,
                     "capabilities": {
-                        "tools": {}
+                        "tools": {},
+                        "resources": {}
                     },
                     "serverInfo": {
                         "name": self.SERVER_NAME,
@@ -501,12 +577,91 @@ class CookieGliMcpServer:
                     }
                 }
 
+        if method == "resources/list":
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "resources": [
+                        {
+                            "uri": "mcp://cookiegli/guide",
+                            "name": "CookieGli Agent Decision Guide",
+                            "mimeType": "text/markdown",
+                            "description": "Agent Decision Matrix & Disambiguation Rules for CookieGli tools"
+                        }
+                    ]
+                }
+            }
+
+        if method == "resources/read":
+            uri = params.get("uri")
+            if uri == "mcp://cookiegli/guide":
+                return {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "contents": [
+                            {
+                                "uri": "mcp://cookiegli/guide",
+                                "mimeType": "text/markdown",
+                                "text": self.get_agent_guide_text()
+                            }
+                        ]
+                    }
+                }
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {"code": -32602, "message": f"Resource not found: {uri}"}
+            }
+
+        if method == "resources/templates/list":
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "result": {
+                    "resourceTemplates": []
+                }
+            }
+
         # Unsupported method
         return {
             "jsonrpc": "2.0",
             "id": req_id,
             "error": {"code": -32601, "message": f"Method not found: {method}"}
         }
+
+    @staticmethod
+    def get_agent_guide_text() -> str:
+        """Returns the Agent Decision Matrix & Tool Disambiguation Guide."""
+        return """# CookieGli Agent Decision Guide & Disambiguation Matrix
+
+## Agent Decision Matrix: When to Use Which Tool
+
+| Situation | Recommended Tool | Why Use This Tool? | Tool to AVOID |
+| :--- | :--- | :--- | :--- |
+| **Starting a new coding/debugging task** | `cookiegli_boost` | Synthesizes Layer 2 dynamic context (<600t): BM25 symbols + skeleton + targeted tests + 2026 reasoning effort. | Do NOT call separate skeleton + symbol search before boosting. |
+| **Fuzzy search for symbols by natural keyword** | `cookiegli_search` | SQLite FTS5 Okapi BM25+ full-text search ranked by semantic relevance. | Do NOT use `cookiegli_find_symbols` when keyword is approximate. |
+| **Exact match for known function/class name** | `cookiegli_find_symbols` | SQLite B-Tree index lookup with `exact=true`, sub-millisecond (<0.05ms). | Do NOT use BM25 when searching for an exact identifier. |
+| **Editing a specific function in a file** | `cookiegli_get_skeleton` | Pass `focus_symbol="target_name"` to fold surrounding code and keep target verbatim. | Do NOT dump the entire raw file. |
+| **Before editing or after test failure** | `cookiegli_blast_radius` | Reverse dependency impact graph and minimal targeted test suite. | Do NOT run the entire monolithic test suite. |
+| **On test failure, exception, or traceback** | `cookiegli_distill_lesson` | Parses traceback/diff, creates Darwin lesson with Bayesian Laplace ROI. | Do NOT fix bugs without persisting lessons. |
+| **Entering unfamiliar codebase or new session** | `cookiegli_get_genome` | Loads Layer 1 static codebase architecture map (<600t). | Do NOT recursively list directories. |
+| **Persisting reusable engineering rules** | `cookiegli_darwin_record` | Records rules into persistent Darwin memory with Laplace-smoothed Bayesian ROI. | Do NOT write ad-hoc notes. |
+| **Querying learned engineering patterns** | `cookiegli_darwin_search` | Searches learned rules by scope, tags, and text query. | Do NOT repeat past mistakes. |
+| **Synchronizing project rules to AI agent configs** | `cookiegli_sync` | Syncs genome and Darwin memory to CLAUDE.md, AGENTS.md, .cursorrules, etc. | Do NOT manually edit agent rule files. |
+| **Single unified multi-action gateway** | `cookiegli_full` | Central dispatch hub accepting `action` and `params`. | Ideal for clients with tool slot limits. |
+
+## 2026 Frontier Models Reasoning Calibration
+CookieGli is calibrated for July-September 2026 frontier models:
+- OpenAI GPT-6 Astra & GPT-5.6 Sol
+- Anthropic Claude Fable 5.1 & Claude Opus 5
+- Google Gemini 3.8 Flash
+- Moonshot Kimi K3
+- DeepSeek-V4 Series
+
+Maintain surgical context (<600 tokens) to preserve prefix cache hits and maximize reasoning efficiency.
+"""
 
     def run_stdio(self) -> None:
         """Runs the MCP server reading from sys.stdin and writing to sys.stdout."""

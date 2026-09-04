@@ -9,17 +9,17 @@
 <!-- cookiegli:genome:start -->
 ### 🧬 Project AST Genome (<600 tokens)
 ```
-# PROJECT GENOME | id:8467882750
+# PROJECT GENOME | id:e0948f0017
 
 [ARCHITECTURE_DNA]
-langs: Python(26)
+langs: Python(27)
 entry_points: src/cookiegli_core/mcp_server.py, tests/test_mcp_server.py
 modules: cli, src, tests
 build_test: build=custom | test=unittest/pytest
 
 [DEPENDENCY_MATRIX]
 external: cookiegli
-hotspots: ast_scanner(fan_in:6), cookiegli_core.mcp_server(fan_in:6), genome_engine(fan_in:5), cookiegli_core.ast_scanner(fan_in:5), cookiegli_core.genome_engine(fan_in:5)
+hotspots: cookiegli_core.mcp_server(fan_in:7), ast_scanner(fan_in:6), cookiegli_core.ast_scanner(fan_in:6), genome_engine(fan_in:5), cookiegli_core.genome_engine(fan_in:5)
 cli/cookiegli.py -> cookiegli_core, cookiegli_core.distiller
 src/cookiegli_core/blast_radius.py -> ast_scanner, cache_db, genome_engine
 src/cookiegli_core/boost_engine.py -> adapters, ast_scanner, blast_radius, cache_db

@@ -7,10 +7,10 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.9-blue.svg?style=flat-square" alt="Python 3.9+">
-  <img src="https://img.shields.io/badge/tests-135%2F135%20passing-brightgreen.svg?style=flat-square" alt="Tests Passing">
+  <img src="https://img.shields.io/badge/tests-152%2F152%20passing-brightgreen.svg?style=flat-square" alt="Tests Passing">
   <img src="https://img.shields.io/badge/token--reduction-75%25--92%25-green.svg?style=flat-square" alt="Token Reduction">
   <img src="https://img.shields.io/badge/symbol--seek-%3C0.1ms-darkgreen.svg?style=flat-square" alt="Symbol Seek Latency">
-  <img src="https://img.shields.io/badge/mcp-ready-purple.svg?style=flat-square" alt="MCP Ready">
+  <img src="https://img.shields.io/badge/mcp-CookieGli__Full-purple.svg?style=flat-square" alt="CookieGli_Full MCP Ready">
   <img src="https://img.shields.io/badge/dependencies-0%20(stdlib%20only)-orange.svg?style=flat-square" alt="Zero Dependencies">
   <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="MIT License">
 </p>
@@ -263,36 +263,59 @@ Mọi thao tác được thực hiện thống nhất qua tệp `cli/cookiegli.p
 | `boost` | `boost [--init] [task] [--max-tokens N] [--json]` | Khởi tạo dự án 1 lệnh (Layer 1 tĩnh) hoặc sinh lát cắt ngữ cảnh động (Layer 2) kèm hiệu chuẩn suy luận 2026. |
 | `search` | `search <query> [--limit N]` | Tra cứu toàn văn BM25+ chuẩn công nghiệp trên SQLite FTS5 (<0.5ms). |
 | `sync` | `sync [--target TARGET] [--root PATH]` | Đồng bộ vào `claude`, `codex`, `antigravity`, `cursor`, `windsurf` hoặc `all`. |
-| `mcp` | `mcp [--root PATH]` | Khởi chạy máy chủ MCP qua giao thức STDIO JSON-RPC 2.0. |
+| `mcp` | `mcp [--profile standard\|full] [--name NAME] [--root PATH]` | Khởi chạy máy chủ MCP qua giao thức STDIO JSON-RPC 2.0 (mặc định profile: `full` - CookieGli_Full). |
 
 ---
 
-## 7. Cấu Hình MCP Server (Model Context Protocol)
+## 7. Cấu Hình MCP Server: `CookieGli_Full` (All-in-One Architecture)
 
-CookieGli tích hợp máy chủ MCP đầy đủ, cho phép kết nối trực tiếp với các ứng dụng hỗ trợ MCP (Claude Desktop, Cursor, Antigravity...):
+CookieGli cung cấp kiến trúc MCP hợp nhất **`CookieGli_Full`** với hệ thống gắn nhãn phân loại danh mục (Domain Category Namespacing) và tài nguyên hướng dẫn `mcp://cookiegli/guide` nhằm giúp các AI Agent (GPT-6 Astra, Claude Opus 5, Gemini 3.8 Flash, Kimi K3, DeepSeek-V4) **phân biệt và kích hoạt công cụ chuẩn xác 100%, không bị nhầm lẫn, trùng lặp hay bỏ sót**.
 
-### Danh sách công cụ MCP được cung cấp
-1. `cookiegli_boost`: Tổng hợp lát cắt ngữ cảnh động Layer 2 (<600 tokens) kèm hiệu chuẩn suy luận 2026 cho tác vụ cụ thể.
-2. `cookiegli_get_skeleton`: Rút gọn file hoặc lấy nội dung hàm chỉ định theo ngân sách token.
-3. `cookiegli_find_symbols`: Tra cứu biểu tượng với độ trễ dưới 0.1ms và hỗ trợ FTS5 BM25+.
-4. `cookiegli_blast_radius`: Phân tích tác động lan truyền và trả về test suite tối thiểu.
-5. `cookiegli_distill_lesson`: Chưng cất lỗi và tự động ghi nhớ quy tắc xử lý sự cố.
-6. `cookiegli_get_genome`: Lấy bản đồ kiến trúc nén của dự án.
-7. `cookiegli_context_slice`: Trích xuất lát cắt ngữ cảnh theo từ khóa công việc.
-8. `cookiegli_register_lesson`: Đăng ký thủ công bài học vào bộ nhớ.
-9. `cookiegli_sync_rules`: Kích hoạt đồng bộ hóa quy tắc và bản đồ kiến trúc.
+### 7.1. Danh Sách Công Cụ & Nhãn Phân Loại (Domain Namespaces)
+* **`[00_CENTRAL_DISPATCH] cookiegli_full`**: Cổng điều phối đa hình trung tâm nhận `action` và `params`, tự động định tuyến tới tất cả các tool con.
+* **`[01_TASK_BOOST] cookiegli_boost`**: Lối vào ưu tiên số 1 khi bắt đầu tác vụ lập trình/gỡ lỗi. Sinh trọn vẹn ngữ cảnh Layer 2 (<600t) gồm BM25 symbols + skeleton focus + ngân sách suy luận 2026.
+* **`[01_TASK_CONTEXT] cookiegli_synthesize_context`**: Trích xuất lát cắt ngữ cảnh theo từ khóa tác vụ cụ thể.
+* **`[02_SYMBOL_IR] cookiegli_search`**: Tra cứu toàn văn theo độ tương đồng ngữ nghĩa bằng SQLite FTS5 Okapi BM25+.
+* **`[02_SYMBOL_BTREE] cookiegli_find_symbols`**: Tra cứu tức thì B-Tree index (<0.05ms) cho tên định danh chính xác (class, function, method).
+* **`[03_CODE_SKELETON] cookiegli_get_skeleton`**: Gấp gọn mã nguồn xung quanh, giữ nguyên văn 100% hàm trọng tâm (`focus_symbol`).
+* **`[04_IMPACT_ANALYSIS] cookiegli_blast_radius`**: Phân tích đồ thị phụ thuộc ngược và chỉ điểm bộ kiểm thử tối thiểu cần chạy.
+* **`[05_ERROR_DISTILLER] cookiegli_distill_lesson`**: Tự động bóc tách traceback/diff thành bài học Darwin có tính điểm tin cậy Bayesian ROI.
+* **`[06_ARCHITECTURE] cookiegli_get_genome`**: Nạp bản đồ kiến trúc Layer 1 tĩnh của toàn bộ dự án (<600t).
+* **`[07_DARWIN_MEMORY] cookiegli_darwin_record` & `cookiegli_darwin_search`**: Ghi nhớ và truy vấn kinh nghiệm kỹ thuật theo Bayesian Laplace ROI.
+* **`[08_TARGET_SYNC] cookiegli_sync`**: Đồng bộ bản đồ kiến trúc và bộ nhớ kinh nghiệm vào `CLAUDE.md`, `AGENTS.md`, `.cursorrules`, `.windsurfrules`.
 
-### Mẫu cấu hình JSON
-Thêm đoạn sau vào file cấu hình MCP của bạn (ví dụ `claude_desktop_config.json` hoặc AntiGravity `mcp_config.json`):
+### 7.2. Ma Trận Hướng Dẫn Ra Quyết Định Của Agent (Agent Disambiguation Matrix)
+
+| Tình Huống Của Agent | Công Cụ Chuẩn Cần Gọi | Tại Sao Dùng Tool Này? | Tool KHÔNG Nên Dùng Lẫn |
+| :--- | :--- | :--- | :--- |
+| **Bắt đầu một task code mới** | `cookiegli_boost` | Sinh trọn vẹn ngữ cảnh Layer 2 (<600t): symbol BM25 + skeleton + targeted tests + reasoning budget 2026. | Không gọi rời rạc skeleton + symbol nếu chưa boost. |
+| **Muốn tìm hàm/class theo từ khóa tự nhiên** | `cookiegli_search` | Dùng SQLite FTS5 Okapi BM25+ toàn văn, xếp hạng theo độ tương đồng ngữ nghĩa. | Không dùng `cookiegli_find_symbols` khi chỉ nhớ từ khóa mang máng. |
+| **Biết rõ tên hàm/class chính xác** | `cookiegli_find_symbols` | Dùng SQLite B-Tree index với cờ `exact=true`, truy xuất siêu tốc <0.05ms. | Không dùng BM25 khi cần khớp chính xác 1 định danh. |
+| **Cần sửa code 1 hàm cụ thể trong file** | `cookiegli_get_skeleton` | Truyền `focus_symbol="ten_ham"`, giữ nguyên văn hàm cần sửa, gập toàn bộ hàm xung quanh để tiết kiệm token. | Không đọc toàn bộ file thô (raw dump). |
+| **Chuẩn bị sửa code hoặc sau khi sửa code** | `cookiegli_blast_radius` | Phân tích đồ thị phụ thuộc ngược, chỉ điểm đúng file test cần chạy. | Không chạy toàn bộ test suite khổng lồ. |
+| **Khi gặp lỗi test / traceback / compiler error** | `cookiegli_distill_lesson` | Bóc tách traceback, tạo bài học Darwin, gán nhãn scope và tính điểm Bayesian ROI. | Không tự sửa mà quên lưu kinh nghiệm. |
+| **Vào repo lạ hoặc bắt đầu session mới** | `cookiegli_get_genome` | Nạp Layer 1 bản đồ kiến trúc tĩnh (<600t). | Không quét thủ công từng thư mục. |
+| **Muốn dùng 1 tool duy nhất điều phối tất cả** | `cookiegli_full` | Truyền `action` tương ứng, máy chủ tự xử lý và trả về kết quả chuẩn hóa. | Dành cho các client chỉ hỗ trợ ít tool slots. |
+
+### 7.3. Tài Nguyên Chỉ Dẫn Tích Hợp (MCP Resources)
+Máy chủ hỗ trợ tài nguyên hệ thống qua MCP:
+* **URI:** `mcp://cookiegli/guide`
+* **MIME Type:** `text/markdown`
+* **Nội dung:** Cẩm nang quyết định và quy tắc disambiguation hoàn chỉnh, giúp AI Agent tự động đọc hiểu khi kết nối.
+
+### 7.4. Mẫu Cấu Hình JSON Cho Client MCP
+Cấu hình máy chủ `CookieGli_Full` trong file MCP client (AntiGravity, Claude Desktop, Cursor, Windsurf):
 
 ```json
 {
   "mcpServers": {
-    "cookiegli": {
+    "CookieGli_Full": {
       "command": "python",
       "args": [
         "E:/AI/Glimax/cli/cookiegli.py",
         "mcp",
+        "--profile",
+        "full",
         "--root",
         "E:/AI/Glimax"
       ]
@@ -305,7 +328,7 @@ Thêm đoạn sau vào file cấu hình MCP của bạn (ví dụ `claude_deskto
 
 ## 8. Kiểm Thử & Đảm Bảo Chất Lượng
 
-Dự án đi kèm bộ kiểm thử toàn diện với 135 bài test tự động, sử dụng trực tiếp thư viện `unittest` tích hợp sẵn trong Python:
+Dự án đi kèm bộ kiểm thử toàn diện với **152 bài test tự động**, sử dụng trực tiếp thư viện `unittest` tích hợp sẵn trong Python:
 
 ```bash
 python -m unittest discover -s tests -v
@@ -313,9 +336,9 @@ python -m unittest discover -s tests -v
 
 Kết quả kiểm thử chuẩn:
 ```text
-Ran 135 tests in 2.509s
+Ran 152 tests in 3.204s
 
-OK (135/135 Tests Passed - 0 Failures, 0 Regressions)
+OK (152/152 Tests Passed - 0 Failures, 0 Regressions)
 ```
 
 Kiểm thử bao phủ đầy đủ:
