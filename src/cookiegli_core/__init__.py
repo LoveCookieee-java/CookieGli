@@ -12,6 +12,7 @@ from .adapters import TargetManager
 from .mcp_server import CookieGliMcpServer
 from .skeletonizer import CodeSkeletonizer, SkeletonResult
 from .blast_radius import BlastRadiusEngine, BlastRadiusReport
+from .boost_engine import BoostEngine
 from .distiller import (
     ErrorDistiller,
     DistilledError,
@@ -20,10 +21,11 @@ from .distiller import (
     clean_darwin_summary,
 )
 
-__version__ = "2.2.0"
+__version__ = "3.0.0"
 __all__ = [
     "AstScanner",
     "AstCache",
+    "BoostEngine",
     "CodeEntity",
     "FileStructure",
     "GenomeEngine",

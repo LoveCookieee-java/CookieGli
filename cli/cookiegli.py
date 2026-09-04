@@ -38,6 +38,7 @@ from cookiegli_core import (
     SkeletonResult,
     BlastRadiusEngine,
     BlastRadiusReport,
+    BoostEngine,
     ErrorDistiller,
     DistilledError,
     DistilledLesson,
@@ -46,6 +47,64 @@ from cookiegli_core import (
 )
 from cookiegli_core.distiller import resolve_darwin_state_path
 
+
+def cmd_boost(args):
+    target_path = Path(args.path or '.').resolve()
+    with BoostEngine(str(target_path)) as boost_engine:
+        if args.init:
+            res = boost_engine.init_project(target=args.target, max_tokens=args.max_tokens)
+            if args.json:
+                print(json.dumps(res, indent=2))
+            else:
+                print(f"[BOOST INIT] Scanned {res['total_files']} files | genome hash: {res['genome_hash']}")
+                print(f"[BOOST INIT] Populated AST cache & FTS5 full-text index")
+                for tgt, paths in res['synced_targets'].items():
+                    print(f"  • {tgt}: {', '.join(paths)}")
+                print("\n[BOOST INIT] Layer 1 static architectural anchor synced successfully.")
+            return 0
+
+        if not args.task:
+            print("[ERROR] Missing required task description for boost. Use --init to initialize, or provide a task description.")
+            return 1
+
+        context_slice = boost_engine.synthesize_task_context(args.task, max_tokens=args.max_tokens)
+        tokens = estimate_tokens(context_slice)
+
+        if args.json:
+            print(json.dumps({
+                "task": args.task,
+                "tokens": tokens,
+                "max_tokens": args.max_tokens,
+                "context": context_slice
+            }, indent=2))
+        else:
+            print(f"[COOKIEGLI BOOST] Synthesized Layer 2 Dynamic Task Tail (~{tokens} tokens, limit: {args.max_tokens})\n")
+            print(context_slice)
+
+        return 0
+
+
+def cmd_search(args):
+    root_path = Path(getattr(args, 'root', None) or '.').resolve()
+    cache_dir = root_path / '.cookiegli'
+    with AstCache(str(cache_dir)) as cache:
+        results = cache.search_bm25(args.query, limit=args.limit)
+
+    if args.json:
+        print(json.dumps(results, indent=2))
+        return 0
+
+    if not results:
+        print(f"No symbols found matching query: '{args.query}'")
+        return 0
+
+    print(f"[FTS5 BM25 SEARCH] Found {len(results)} matching symbols for: '{args.query}'\n")
+    for r in results:
+        score_str = f" [bm25: {r['score']}]" if 'score' in r else ""
+        sig_str = f" : {r['signature']}" if r.get('signature') else ""
+        print(f"  • [{r['entity_type']}] {r['name']} ({r['relative_path']}:{r['line_number']}){sig_str}{score_str}")
+
+    return 0
 
 
 def cmd_genome_build(args):
@@ -604,6 +663,24 @@ def main():
     p_distill.add_argument('--root', default='.', help="Project root directory")
     p_distill.add_argument('--json', action='store_true', help="Output results as JSON")
     p_distill.set_defaults(func=cmd_distill)
+
+    # Boost parser
+    p_boost = subparsers.add_parser('boost', aliases=['bootstrap'], help="Two-tier boost: Layer 1 static anchor (--init) or Layer 2 dynamic task tail")
+    p_boost.add_argument('task', nargs='?', default='', help="Specific programming or debugging task description")
+    p_boost.add_argument('--init', action='store_true', help="One-command init: scan AST, populate B-Tree & FTS5, and sync Layer 1 static anchor")
+    p_boost.add_argument('--max-tokens', type=int, default=600, help="Maximum token budget for Layer 2 dynamic task context (default: 600)")
+    p_boost.add_argument('--path', default='.', help="Target project root directory")
+    p_boost.add_argument('--target', choices=['claude', 'codex', 'antigravity', 'cursor', 'windsurf', 'all'], default='all', help="Target platform to sync when --init is used")
+    p_boost.add_argument('--json', action='store_true', help="Output results as JSON")
+    p_boost.set_defaults(func=cmd_boost)
+
+    # Search parser
+    p_search = subparsers.add_parser('search', help="Full-text symbol search using SQLite FTS5 BM25+ ranking")
+    p_search.add_argument('query', help="Symbol name or search terms")
+    p_search.add_argument('--limit', type=int, default=20, help="Maximum results to return (default: 20)")
+    p_search.add_argument('--root', default='.', help="Project root directory")
+    p_search.add_argument('--json', action='store_true', help="Output results as JSON")
+    p_search.set_defaults(func=cmd_search)
 
     args = parser.parse_args()
     return args.func(args)

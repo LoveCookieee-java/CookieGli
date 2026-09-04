@@ -7,7 +7,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-%E2%89%A53.9-blue.svg?style=flat-square" alt="Python 3.9+">
-  <img src="https://img.shields.io/badge/tests-118%2F118%20passing-brightgreen.svg?style=flat-square" alt="Tests Passing">
+  <img src="https://img.shields.io/badge/tests-135%2F135%20passing-brightgreen.svg?style=flat-square" alt="Tests Passing">
   <img src="https://img.shields.io/badge/token--reduction-75%25--92%25-green.svg?style=flat-square" alt="Token Reduction">
   <img src="https://img.shields.io/badge/symbol--seek-%3C0.1ms-darkgreen.svg?style=flat-square" alt="Symbol Seek Latency">
   <img src="https://img.shields.io/badge/mcp-ready-purple.svg?style=flat-square" alt="MCP Ready">
@@ -236,6 +236,8 @@ Mọi thao tác được thực hiện thống nhất qua tệp `cli/cookiegli.p
 | `genome` | `genome build [path] [--max-tokens N] [--save PATH]` | Quét mã nguồn và xuất bản đồ kiến trúc dự án tổng quát (<600 tokens). |
 | `monorepo` | `monorepo build [path] [--save PATH]` | Xây dựng bản đồ phân tầng cho dự án nhiều package. |
 | `darwin` | `darwin register / use / search / list / evolve / sync` | Quản lý vòng đời lưu trữ và đào thải bài học kinh nghiệm. |
+| `boost` | `boost [--init] [task] [--max-tokens N] [--json]` | Khởi tạo dự án 1 lệnh (Layer 1 tĩnh) hoặc sinh lát cắt ngữ cảnh động (Layer 2) kèm hiệu chuẩn suy luận 2026. |
+| `search` | `search <query> [--limit N]` | Tra cứu toàn văn BM25+ chuẩn công nghiệp trên SQLite FTS5 (<0.5ms). |
 | `sync` | `sync [--target TARGET] [--root PATH]` | Đồng bộ vào `claude`, `codex`, `antigravity`, `cursor`, `windsurf` hoặc `all`. |
 | `mcp` | `mcp [--root PATH]` | Khởi chạy máy chủ MCP qua giao thức STDIO JSON-RPC 2.0. |
 
@@ -246,17 +248,18 @@ Mọi thao tác được thực hiện thống nhất qua tệp `cli/cookiegli.p
 CookieGli tích hợp máy chủ MCP đầy đủ, cho phép kết nối trực tiếp với các ứng dụng hỗ trợ MCP (Claude Desktop, Cursor, Antigravity...):
 
 ### Danh sách công cụ MCP được cung cấp
-1. `cookiegli_get_skeleton`: Rút gọn file hoặc lấy nội dung hàm chỉ định theo ngân sách token.
-2. `cookiegli_find_symbols`: Tra cứu biểu tượng với độ trễ dưới 0.1ms.
-3. `cookiegli_blast_radius`: Phân tích tác động lan truyền và trả về test suite tối thiểu.
-4. `cookiegli_distill_lesson`: Chưng cất lỗi và tự động ghi nhớ quy tắc xử lý sự cố.
-5. `cookiegli_get_genome`: Lấy bản đồ kiến trúc nén của dự án.
-6. `cookiegli_context_slice`: Trích xuất lát cắt ngữ cảnh theo từ khóa công việc.
-7. `cookiegli_register_lesson`: Đăng ký thủ công bài học vào bộ nhớ.
-8. `cookiegli_sync_rules`: Kích hoạt đồng bộ hóa quy tắc và bản đồ kiến trúc.
+1. `cookiegli_boost`: Tổng hợp lát cắt ngữ cảnh động Layer 2 (<600 tokens) kèm hiệu chuẩn suy luận 2026 cho tác vụ cụ thể.
+2. `cookiegli_get_skeleton`: Rút gọn file hoặc lấy nội dung hàm chỉ định theo ngân sách token.
+3. `cookiegli_find_symbols`: Tra cứu biểu tượng với độ trễ dưới 0.1ms và hỗ trợ FTS5 BM25+.
+4. `cookiegli_blast_radius`: Phân tích tác động lan truyền và trả về test suite tối thiểu.
+5. `cookiegli_distill_lesson`: Chưng cất lỗi và tự động ghi nhớ quy tắc xử lý sự cố.
+6. `cookiegli_get_genome`: Lấy bản đồ kiến trúc nén của dự án.
+7. `cookiegli_context_slice`: Trích xuất lát cắt ngữ cảnh theo từ khóa công việc.
+8. `cookiegli_register_lesson`: Đăng ký thủ công bài học vào bộ nhớ.
+9. `cookiegli_sync_rules`: Kích hoạt đồng bộ hóa quy tắc và bản đồ kiến trúc.
 
 ### Mẫu cấu hình JSON
-Thêm đoạn sau vào file cấu hình MCP của bạn (ví dụ `claude_desktop_config.json`):
+Thêm đoạn sau vào file cấu hình MCP của bạn (ví dụ `claude_desktop_config.json` hoặc AntiGravity `mcp_config.json`):
 
 ```json
 {
@@ -278,7 +281,7 @@ Thêm đoạn sau vào file cấu hình MCP của bạn (ví dụ `claude_deskto
 
 ## 8. Kiểm Thử & Đảm Bảo Chất Lượng
 
-Dự án đi kèm bộ kiểm thử toàn diện với 118 bài test tự động, sử dụng trực tiếp thư viện `unittest` tích hợp sẵn trong Python:
+Dự án đi kèm bộ kiểm thử toàn diện với 135 bài test tự động, sử dụng trực tiếp thư viện `unittest` tích hợp sẵn trong Python:
 
 ```bash
 python -m unittest discover -s tests -v
@@ -286,9 +289,9 @@ python -m unittest discover -s tests -v
 
 Kết quả kiểm thử chuẩn:
 ```text
-Ran 118 tests in 1.396s
+Ran 135 tests in 2.509s
 
-OK (118/118 Tests Passed - 0 Failures, 0 Regressions)
+OK (135/135 Tests Passed - 0 Failures, 0 Regressions)
 ```
 
 Kiểm thử bao phủ đầy đủ:

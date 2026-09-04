@@ -17,6 +17,7 @@ from cookiegli_core.cache_db import AstCache
 from cookiegli_core.ast_scanner import AstScanner
 from cookiegli_core.skeletonizer import CodeSkeletonizer
 from cookiegli_core.blast_radius import BlastRadiusEngine, BlastRadiusReport
+from cookiegli_core.boost_engine import BoostEngine
 from cookiegli_core.distiller import (
     ErrorDistiller,
     clean_darwin_summary,
@@ -185,6 +186,32 @@ class CookieGliMcpServer:
                         "sync_targets": {"type": "string", "enum": ["claude", "codex", "antigravity", "cursor", "windsurf", "all"], "description": "Optional target to sync memory to"}
                     },
                     "required": ["traceback"]
+                }
+            },
+            {
+                "name": "cookiegli_boost",
+                "description": "Synthesizes surgical Layer 2 Dynamic Task Tail context (BM25 symbols, blast radius, focus skeleton, 2026 reasoning calibration) strictly <= 600 tokens.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "task": {"type": "string", "description": "The specific task description or query"},
+                        "max_tokens": {"type": "integer", "description": "Maximum token budget (default: 600)", "default": 600},
+                        "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
+                    },
+                    "required": ["task"]
+                }
+            },
+            {
+                "name": "cookiegli_search",
+                "description": "Full-text symbol search using SQLite FTS5 BM25+ ranking across codebase symbols.",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Symbol name or search terms"},
+                        "limit": {"type": "integer", "description": "Maximum number of results to return", "default": 20},
+                        "path": {"type": "string", "description": "Repository path (defaults to workspace root)"}
+                    },
+                    "required": ["query"]
                 }
             }
         ]
@@ -378,6 +405,27 @@ class CookieGliMcpServer:
                 "registered": artifact.id if artifact else None
             }
             return json.dumps(res, indent=2)
+
+        elif name == "cookiegli_boost":
+            task = arguments.get("task", "")
+            max_tokens = int(arguments.get("max_tokens", 600))
+            with BoostEngine(str(target_path)) as boost_engine:
+                return boost_engine.synthesize_task_context(task, max_tokens=max_tokens)
+
+        elif name == "cookiegli_search":
+            query = arguments.get("query", "")
+            limit = int(arguments.get("limit", 20))
+            cache_dir = target_path / '.cookiegli'
+            with AstCache(str(cache_dir)) as cache:
+                results = cache.search_bm25(query, limit=limit)
+            if not results:
+                return f"No symbols found matching '{query}'."
+            formatted = []
+            for r in results:
+                score_str = f" [score: {r['score']}]" if 'score' in r else ""
+                sig = f" : {r['signature']}" if r.get('signature') else ""
+                formatted.append(f"• [{r['entity_type']}] {r['name']} ({r['relative_path']}:{r['line_number']}){sig}{score_str}")
+            return "\n".join(formatted)
 
         else:
             raise ValueError(f"Unknown tool '{name}'")

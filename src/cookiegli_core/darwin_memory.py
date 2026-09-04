@@ -77,10 +77,11 @@ class LearnedArtifact:
             decay_factor = math.pow(2.0, - (age_seconds / half_life_seconds))
             self.roi *= decay_factor
 
-    def to_summary_line(self) -> str:
+    def to_summary_line(self, include_telemetry: bool = False) -> str:
         scope_str = f" `[{self.scope}]`" if self.scope and self.scope != "global" else ""
         tag_str = f" `[{', '.join(self.tags)}]`" if self.tags else ""
-        return f"- [{self.artifact_type.upper()}] **{self.name}**{scope_str}{tag_str} (ROI: {self.roi:.2f}, SR: {self.smoothed_success_rate:.0%}): {self.content}"
+        telemetry = f" (ROI: {self.roi:.2f}, SR: {self.smoothed_success_rate:.0%})" if include_telemetry else ""
+        return f"- [{self.artifact_type.upper()}] **{self.name}**{scope_str}{tag_str}{telemetry}: {self.content}"
 
 
 class DarwinMemory:
@@ -234,7 +235,7 @@ class DarwinMemory:
             'total_artifacts': len(self.artifacts)
         }
 
-    def to_markdown_summary(self, max_tokens: int = 500, scope: Optional[str] = None) -> str:
+    def to_markdown_summary(self, max_tokens: int = 500, scope: Optional[str] = None, include_telemetry: bool = False) -> str:
         """Generate markdown summary for .agents/AGENTS.md integration."""
         active = self.get_active(scope=scope)
         lines = [
@@ -246,7 +247,7 @@ class DarwinMemory:
             lines.append("- *No verified patterns evolved yet. Run tasks to build evolutionary memory.*")
         else:
             for a in active:
-                line = a.to_summary_line()
+                line = a.to_summary_line(include_telemetry=include_telemetry)
                 test_str = "\n".join(lines + [line, "<!-- darwin:learnings:end -->"])
                 if estimate_tokens(test_str) > max_tokens:
                     break

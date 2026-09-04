@@ -50,13 +50,34 @@ class TargetManager:
 
         if matches:
             target_match = matches[-1]
-            return content[:target_match.start()] + block + content[target_match.end():]
+            res = content[:target_match.start()] + block + content[target_match.end():]
+            if not res.endswith('\n'):
+                res += '\n'
+            return res
 
         # If tag not present, append to end
         stripped = content.strip()
         if stripped:
-            return f"{stripped}\n\n{header_hint}\n{block}\n" if header_hint else f"{stripped}\n\n{block}\n"
-        return f"{header_hint}\n{block}\n" if header_hint else f"{block}\n"
+            res = f"{stripped}\n\n{header_hint}\n{block}\n" if header_hint else f"{stripped}\n\n{block}\n"
+        else:
+            res = f"{header_hint}\n{block}\n" if header_hint else f"{block}\n"
+        if not res.endswith('\n'):
+            res += '\n'
+        return res
+
+    @staticmethod
+    def _write_file_idempotent(path: Path, content: str, encoding: str = "utf-8") -> bool:
+        """Write content to path only if content differs, preserving mtime if unchanged."""
+        if path.exists():
+            try:
+                existing = path.read_text(encoding=encoding)
+                if existing == content:
+                    return False
+            except Exception:
+                pass
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding=encoding)
+        return True
 
     @classmethod
     def sync_claude(cls, workspace_root: Path, genome_text: Optional[str] = None, darwin_text: Optional[str] = None) -> Path:
@@ -77,7 +98,7 @@ class TargetManager:
                 updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, darwin_body, "## Learned Engineering Patterns"
             )
 
-        claude_md.write_text(updated, encoding="utf-8")
+        cls._write_file_idempotent(claude_md, updated)
         return claude_md
 
     @classmethod
@@ -99,7 +120,7 @@ class TargetManager:
                 updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, darwin_body, "## Operational Priors"
             )
 
-        agents_md.write_text(updated, encoding="utf-8")
+        cls._write_file_idempotent(agents_md, updated)
         return agents_md
 
     @classmethod
@@ -113,7 +134,7 @@ class TargetManager:
 
         if genome_text:
             g_path = agents_dir / "GENOME.md"
-            g_path.write_text(genome_text.strip() + "\n", encoding="utf-8")
+            cls._write_file_idempotent(g_path, genome_text.strip() + "\n")
 
         if darwin_text:
             d_path = agents_dir / "AGENTS.md"
@@ -126,7 +147,7 @@ class TargetManager:
                 updated = cls._inject_bounded_block(existing, legacy_start, legacy_end, darwin_body)
             else:
                 updated = cls._inject_bounded_block(existing, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, darwin_body, "## Operational Rules")
-            d_path.write_text(updated, encoding="utf-8")
+            cls._write_file_idempotent(d_path, updated)
 
         return g_path, d_path
 
@@ -146,7 +167,7 @@ class TargetManager:
             if darwin_text:
                 cleaned = cls._clean_darwin_body(darwin_text)
                 content += f"## Verified Operational Patterns\n{cleaned.strip()}\n"
-            mdc_path.write_text(content, encoding="utf-8")
+            cls._write_file_idempotent(mdc_path, content)
             paths.append(mdc_path)
 
         cursorrules = workspace_root / ".cursorrules"
@@ -161,7 +182,7 @@ class TargetManager:
             updated = cls._inject_bounded_block(
                 updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, cleaned.strip(), "## Learned Best Practices"
             )
-        cursorrules.write_text(updated, encoding="utf-8")
+        cls._write_file_idempotent(cursorrules, updated)
         paths.append(cursorrules)
 
         return paths
@@ -181,7 +202,7 @@ class TargetManager:
             updated = cls._inject_bounded_block(
                 updated, cls.DARWIN_START_TAG, cls.DARWIN_END_TAG, cleaned.strip(), "## Verified Practices"
             )
-        windsurf_file.write_text(updated, encoding="utf-8")
+        cls._write_file_idempotent(windsurf_file, updated)
         return windsurf_file
 
     @classmethod

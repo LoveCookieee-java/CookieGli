@@ -6,6 +6,7 @@ Enables sub-5ms incremental scanning on massive enterprise monorepos (100k+ file
 import hashlib
 import json
 import os
+import re
 import sqlite3
 import time
 from pathlib import Path
@@ -81,6 +82,49 @@ class AstCache:
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_sym_relpath ON symbol_cache(relative_path)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_sym_filepath ON symbol_cache(file_path)")
         self.conn.execute("CREATE INDEX IF NOT EXISTS idx_sym_type ON symbol_cache(entity_type)")
+
+        # Initialize SQLite FTS5 Virtual Table and Sync Triggers
+        try:
+            self.conn.execute("""
+                CREATE VIRTUAL TABLE IF NOT EXISTS symbol_fts USING fts5(
+                    name, simple_name, container, entity_type, relative_path, signature, docstring,
+                    content='symbol_cache', content_rowid='id',
+                    tokenize='unicode61 remove_diacritics 2'
+                )
+            """)
+            self.conn.execute("""
+                CREATE TRIGGER IF NOT EXISTS trig_symbol_cache_ai AFTER INSERT ON symbol_cache BEGIN
+                    INSERT INTO symbol_fts(rowid, name, simple_name, container, entity_type, relative_path, signature, docstring)
+                    VALUES (new.id, new.name, new.simple_name, new.container, new.entity_type, new.relative_path, new.signature, new.docstring);
+                END
+            """)
+            self.conn.execute("""
+                CREATE TRIGGER IF NOT EXISTS trig_symbol_cache_ad AFTER DELETE ON symbol_cache BEGIN
+                    INSERT INTO symbol_fts(symbol_fts, rowid, name, simple_name, container, entity_type, relative_path, signature, docstring)
+                    VALUES ('delete', old.id, old.name, old.simple_name, old.container, old.entity_type, old.relative_path, old.signature, old.docstring);
+                END
+            """)
+            self.conn.execute("""
+                CREATE TRIGGER IF NOT EXISTS trig_symbol_cache_au AFTER UPDATE ON symbol_cache BEGIN
+                    INSERT INTO symbol_fts(symbol_fts, rowid, name, simple_name, container, entity_type, relative_path, signature, docstring)
+                    VALUES ('delete', old.id, old.name, old.simple_name, old.container, old.entity_type, old.relative_path, old.signature, old.docstring);
+                    INSERT INTO symbol_fts(rowid, name, simple_name, container, entity_type, relative_path, signature, docstring)
+                    VALUES (new.id, new.name, new.simple_name, new.container, new.entity_type, new.relative_path, new.signature, new.docstring);
+                END
+            """)
+            self.fts5_available = True
+            # Rebuild FTS index if symbol_cache already has rows
+            cur.execute("SELECT COUNT(*) FROM symbol_cache")
+            if cur.fetchone()[0] > 0:
+                try:
+                    cur.execute("SELECT COUNT(*) FROM symbol_fts")
+                    if cur.fetchone()[0] == 0:
+                        self.conn.execute("INSERT INTO symbol_fts(symbol_fts) VALUES('rebuild')")
+                except Exception:
+                    pass
+        except Exception:
+            self.fts5_available = False
+
         self.conn.commit()
 
     @staticmethod
@@ -239,6 +283,11 @@ class AstCache:
     def clear(self) -> None:
         self.conn.execute("DELETE FROM file_cache")
         self.conn.execute("DELETE FROM symbol_cache")
+        if getattr(self, 'fts5_available', False):
+            try:
+                self.conn.execute("INSERT INTO symbol_fts(symbol_fts) VALUES('rebuild')")
+            except Exception:
+                pass
         self.commit()
 
     @staticmethod
@@ -319,6 +368,63 @@ class AstCache:
                 "docstring": r["docstring"] or ""
             })
         return results
+
+    def search_bm25(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
+        """
+        Search symbols using SQLite FTS5 BM25+ full-text search with ranking.
+        Falls back gracefully to indexed B-tree search if FTS5 is not available.
+        """
+        query = query.strip() if query else ""
+        if not query:
+            return []
+
+        if not getattr(self, 'fts5_available', False):
+            return self.find_symbols(query=query, limit=limit)
+
+        # Extract search tokens and deduplicate while preserving order
+        tokens = re.findall(r'[A-Za-z0-9_]+', query)
+        if not tokens:
+            return self.find_symbols(query=query, limit=limit)
+
+        unique_tokens = list(dict.fromkeys(tokens))
+        clean_tokens = [f'"{t}"*' if len(t) >= 2 else f'"{t}"' for t in unique_tokens]
+        fts_query = " OR ".join(clean_tokens)
+
+        try:
+            cur = self.conn.cursor()
+            sql = """
+                SELECT s.name, s.simple_name, s.container, s.entity_type, s.file_path,
+                       s.relative_path, s.line_number, s.signature, s.docstring,
+                       bm25(symbol_fts, 10.0, 10.0, 5.0, 2.0, 2.0, 1.0, 1.0) AS score
+                FROM symbol_fts f
+                JOIN symbol_cache s ON s.id = f.rowid
+                WHERE symbol_fts MATCH ?
+                ORDER BY score ASC
+                LIMIT ?
+            """
+            cur.execute(sql, (fts_query, limit))
+            rows = cur.fetchall()
+
+            if not rows:
+                return self.find_symbols(query=query, limit=limit)
+
+            results = []
+            for r in rows:
+                results.append({
+                    "name": r["name"],
+                    "simple_name": r["simple_name"],
+                    "container": r["container"],
+                    "entity_type": r["entity_type"],
+                    "file_path": r["file_path"],
+                    "relative_path": r["relative_path"],
+                    "line_number": r["line_number"],
+                    "signature": r["signature"] or "",
+                    "docstring": r["docstring"] or "",
+                    "score": round(float(r["score"]), 4)
+                })
+            return results
+        except Exception:
+            return self.find_symbols(query=query, limit=limit)
 
     def close(self) -> None:
         try:

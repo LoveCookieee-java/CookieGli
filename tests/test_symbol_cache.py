@@ -473,6 +473,115 @@ class TestSymbolCache(unittest.TestCase):
             self.assertIn("UserService.find_user", resp)
             self.assertIn("user_service.py", resp)
 
+    def test_fts5_virtual_table_and_bm25_ranking(self):
+        """Verify SQLite FTS5 BM25+ search ranking and trigger sync."""
+        py_file = self.root / "billing_service.py"
+        py_file.write_text(
+            "class BillingManager:\n"
+            "    \"\"\"Manages subscription payments.\"\"\"\n"
+            "    def process_payment(self, amount: float, token: str) -> bool:\n"
+            "        \"\"\"Process credit card charge.\"\"\"\n"
+            "        return True\n"
+            "\n"
+            "    def refund_transaction(self, tx_id: str) -> bool:\n"
+            "        \"\"\"Refund previous transaction.\"\"\"\n"
+            "        return True\n",
+            encoding="utf-8"
+        )
+
+        with AstScanner(str(self.root), use_cache=True, cache_dir=str(self.cache_dir)) as scanner:
+            scanner.scan()
+
+        with AstCache(str(self.cache_dir)) as cache:
+            # Check virtual table exists
+            cur = cache.conn.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='symbol_fts'")
+            tbl = cur.fetchone()
+            if not tbl:
+                self.skipTest("FTS5 module not available in this SQLite build")
+
+            # Check 3 triggers exist
+            cur.execute("SELECT name FROM sqlite_master WHERE type='trigger' AND name LIKE 'trig_symbol_cache_%'")
+            triggers = {r["name"] for r in cur.fetchall()}
+            self.assertIn("trig_symbol_cache_ai", triggers)
+            self.assertIn("trig_symbol_cache_ad", triggers)
+            self.assertIn("trig_symbol_cache_au", triggers)
+
+            # Search by function docstring / term
+            results = cache.search_bm25("process payment credit card charge")
+            self.assertGreater(len(results), 0)
+            self.assertEqual(results[0]["name"], "BillingManager.process_payment")
+            self.assertIn("score", results[0])
+
+            # Search by refund
+            refund_res = cache.search_bm25("refund transaction")
+            self.assertGreater(len(refund_res), 0)
+            self.assertEqual(refund_res[0]["name"], "BillingManager.refund_transaction")
+
+    def test_fts5_trigger_delete_and_clear_sync(self):
+        """Verify that FTS5 table is automatically synced on deletion and clearing."""
+        py_file = self.root / "auth.py"
+        py_file.write_text("class AuthValidator:\n    def validate_hash(self, h: str): pass\n", encoding="utf-8")
+
+        with AstScanner(str(self.root), use_cache=True, cache_dir=str(self.cache_dir)) as scanner:
+            scanner.scan()
+
+        with AstCache(str(self.cache_dir)) as cache:
+            if not getattr(cache, 'fts5_available', False):
+                self.skipTest("FTS5 not available")
+
+            # Must find AuthValidator
+            hits = cache.search_bm25("AuthValidator")
+            self.assertGreater(len(hits), 0)
+
+            # Clear cache
+            cache.clear()
+
+            # Must be empty in both B-Tree and FTS
+            hits_after = cache.search_bm25("AuthValidator")
+            self.assertEqual(len(hits_after), 0)
+
+
+    def test_fts5_disabled_fallback_to_btree(self):
+        """Verify that when FTS5 is disabled, search_bm25 falls back gracefully to indexed B-tree search."""
+        py_file = self.root / "payment.py"
+        py_file.write_text("class PaymentProcessor:\n    def process_charge(self, amount: int): pass\n", encoding="utf-8")
+
+        with AstScanner(str(self.root), use_cache=True, cache_dir=str(self.cache_dir)) as scanner:
+            scanner.scan()
+
+        with AstCache(str(self.cache_dir)) as cache:
+            # Force FTS5 unavailable to simulate environments without FTS5 compile flags
+            cache.fts5_available = False
+
+            results = cache.search_bm25("PaymentProcessor")
+            self.assertGreater(len(results), 0)
+            self.assertEqual(results[0]["name"], "PaymentProcessor")
+            self.assertEqual(results[0]["entity_type"], "class")
+
+            # Search method
+            method_hits = cache.search_bm25("process_charge")
+            self.assertGreater(len(method_hits), 0)
+            self.assertIn("PaymentProcessor.process_charge", [m["name"] for m in method_hits])
+
+    def test_bm25_deduplication_and_punctuation_handling(self):
+        """Verify duplicate search tokens, punctuation, and single-character tokens work cleanly."""
+        py_file = self.root / "search_target.py"
+        py_file.write_text("class TargetService:\n    def execute(self, a: int): pass\n", encoding="utf-8")
+
+        with AstScanner(str(self.root), use_cache=True, cache_dir=str(self.cache_dir)) as scanner:
+            scanner.scan()
+
+        with AstCache(str(self.cache_dir)) as cache:
+            # Query with duplicate words, punctuation, and 1-char tokens
+            res = cache.search_bm25("TargetService in a in service! (execute?)")
+            self.assertGreater(len(res), 0)
+            self.assertIn("TargetService", [r["name"] for r in res])
+
+            # Query with exclusively punctuation
+            empty_res = cache.search_bm25("!@#$%^&*()")
+            self.assertEqual(len(empty_res), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

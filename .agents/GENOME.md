@@ -1,21 +1,19 @@
-# PROJECT GENOME (2026-09-04T04:07:42Z) | hash:5896888661
+# PROJECT GENOME | id:8467882750
 
 [ARCHITECTURE_DNA]
-langs: Python(24)
+langs: Python(26)
 entry_points: src/cookiegli_core/mcp_server.py, tests/test_mcp_server.py
 modules: cli, src, tests
 build_test: build=custom | test=unittest/pytest
-metrics: 24 files, 9,192 lines
 
 [DEPENDENCY_MATRIX]
 external: cookiegli
-hotspots: ast_scanner(fan_in:5), cookiegli_core.ast_scanner(fan_in:5), cookiegli_core.mcp_server(fan_in:5), genome_engine(fan_in:4), cookiegli_core.cache_db(fan_in:4)
+hotspots: ast_scanner(fan_in:6), cookiegli_core.mcp_server(fan_in:6), genome_engine(fan_in:5), cookiegli_core.ast_scanner(fan_in:5), cookiegli_core.genome_engine(fan_in:5)
 cli/cookiegli.py -> cookiegli_core, cookiegli_core.distiller
 src/cookiegli_core/blast_radius.py -> ast_scanner, cache_db, genome_engine
+src/cookiegli_core/boost_engine.py -> adapters, ast_scanner, blast_radius, cache_db
 src/cookiegli_core/cache_db.py -> ast_scanner
 src/cookiegli_core/distiller.py -> adapters, darwin_memory
-src/cookiegli_core/genome_engine.py -> ast_scanner
-src/cookiegli_core/mcp_server.py -> cookiegli_core.adapters, cookiegli_core.ast_scanner, cookiegli_core.blast_radius, cookiegli_core.cache_db
 
 [API_REGISTRY]
 classes:
@@ -25,21 +23,13 @@ classes:
   • class AstScanner [methods: __init__, close, scan] [src/cookiegli_core/ast_scanner.py:61] - Multi-language structural scanner with m
   • class BlastRadiusReport [methods: to_dict, to_compact] [src/cookiegli_core/blast_radius.py:66] - Comprehensive blast radius impact report
   • class BlastRadiusEngine [methods: __init__, close, detect_changed_files, build_ingress_graph] [src/cookiegli_core/blast_radius.py:239] - Git Blast Radius & Downstream Dependency
-  • class AstCache [methods: __init__, compute_sha256, get, put] [src/cookiegli_core/cache_db.py:17] - High-performance SQLite-backed AST cache
+  • class BoostEngine [methods: __init__, close, init_project, synthesize_task_context] [src/cookiegli_core/boost_engine.py:59] - CookieGli Boost Engine for 2026 Frontier
+  • class AstCache [methods: __init__, compute_sha256, get, put] [src/cookiegli_core/cache_db.py:18] - High-performance SQLite-backed AST cache
   • class LearnedArtifact [methods: smoothed_success_rate, record_use, apply_decay, apply_temporal_decay] [src/cookiegli_core/darwin_memory.py:24]
-  • class DarwinMemory [methods: __init__, register, record_usage, get_active] [src/cookiegli_core/darwin_memory.py:86] - Enterprise Darwinian memory pool with at
-  • class StackFrame [src/cookiegli_core/distiller.py:21] - Represents a single frame in an executio
+  • class DarwinMemory [methods: __init__, register, record_usage, get_active] [src/cookiegli_core/darwin_memory.py:87] - Enterprise Darwinian memory pool with at
 functions:
-  • def cmd_genome_build(args) [cli/cookiegli.py:51]
-  • def cmd_genome_context(args) [cli/cookiegli.py:70]
-  • def cmd_monorepo_build(args) [cli/cookiegli.py:82]
-  • def cmd_monorepo_context(args) [cli/cookiegli.py:101]
+  • def cmd_boost(args) [cli/cookiegli.py:51]
 
 [PATTERN_STANDARDS]
-conventions: snake_case-functions, PascalCase-classes, type-annotated
 
 [EVOLUTION_HOTSPOTS]
-recent_changes:
-  • 4920175 docs: redesign README with clear, humble, and develo
-  • a3da1e1 fix(branding): remove all legacy alias references an
-  • 18eb4f2 feat(root): promote CookieGli to repository root and

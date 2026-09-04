@@ -1,11 +1,11 @@
 ---
 name: cookiegli-core
-description: High-density project context genome compression (<=600 tokens), Monorepo hierarchy, and Bayesian ROI Darwin memory evolution. Use to onboard instantly into unfamiliar projects, compress project context, and evolve learned engineering patterns.
+description: Two-Tier Context Engine (<600 tokens), SQLite FTS5 BM25+ search, and 2026 Frontier reasoning calibration. Triggered on /boost, /cookiegli-core, or when onboarding, synthesizing surgical task context, and optimizing prefix cache.
 ---
 
-# CookieGli Core — Autonomous Context Genome & Bayesian Darwin Memory Evolution
+# CookieGli v3.0 — Two-Tier Context Engine & 2026 Frontier Model Optimizer
 
-You are operating with **CookieGli Core** active. This skill equips you with ultra-dense project context comprehension, Monorepo hierarchical cluster mapping, surgical code modification protocols, zero-defect automated testing loops, and evolutionary knowledge persistence across sessions.
+You are operating with **CookieGli Core v3.0** active. This skill equips you with ultra-dense project context comprehension, Two-Tier `/boost` engine, SQLite FTS5 BM25+ symbol retrieval, surgical code skeletonization, zero-defect automated testing loops, and evolutionary knowledge persistence.
 
 ---
 
@@ -38,14 +38,23 @@ You are operating with **CookieGli Core** active. This skill equips you with ult
 
 ### Protocol 1: Autonomous Onboarding & Surgical Context Targeting
 Whenever you enter a new workspace, start a new conversation, or receive a task:
-1. **Genome-First Check**:
+1. **One-Command Project Bootstrap (`/boost`)**:
+   - Run the bootstrap initialization to scan AST, populate SQLite B-Tree & FTS5 BM25 index, and synchronize Layer 1 static anchor across all target configs:
+     ```powershell
+     python cli/cookiegli.py boost --init
+     ```
+   - For any incoming task, synthesize the surgical Layer 2 dynamic task context (<600 tokens):
+     ```powershell
+     python cli/cookiegli.py boost "<task description>"
+     ```
+2. **Genome-First Check**:
    - Look for `.agents/GENOME.md` in the workspace.
    - If present: Read it using `view_file` (consumes only ~500 tokens) to instantly master all classes, methods, signatures, frameworks, entrypoints, and dependency hotspots.
    - If absent: Build it in < 0.1s using the CLI:
      ```powershell
      python cli/cookiegli.py genome build . --save .agents/GENOME.md
      ```
-2. **Monorepo / Multi-Package Workspaces**:
+3. **Monorepo / Multi-Package Workspaces**:
    - For repositories containing multiple packages/services, generate the Tier-1 Root Cluster Map:
      ```powershell
      python cli/cookiegli.py monorepo build . --save .agents/GENOME.md
@@ -54,7 +63,7 @@ Whenever you enter a new workspace, start a new conversation, or receive a task:
      ```powershell
      python cli/cookiegli.py monorepo context "<task description>"
      ```
-3. **Zero Raw Dumps**:
+4. **Zero Raw Dumps**:
    - NEVER dump massive directory trees or open entire multi-thousand-line files.
    - Always use `grep_search` and line-range `view_file` (`StartLine`/`EndLine`) targeted directly at the exact line numbers provided in `ApiRegistry`.
 
@@ -119,12 +128,13 @@ Whenever you resolve a non-trivial bug, overcome a tricky compiler error, or dis
 ---
 
 ### Protocol 5: Universal Multi-Target Synchronization & MCP Integration
-CookieGli 2.2 Enterprise is a universal token-economy engine for all modern AI coding agents:
-- **Claude Code**: Syncs compact AST Genome and Darwin lessons into `CLAUDE.md` to trigger Anthropic's 75%–90% prompt cache read discount (Claude Fable 5.1 / Opus 5 / Sonnet 5).
-- **OpenAI Codex**: Syncs into `AGENTS.md` to preserve reasoning purity and prevent token waste in GPT-5.3-Codex, GPT-5.6 Sol, and o3/o4.
+CookieGli v3.0 is a universal token-economy engine for all modern AI coding agents:
+- **Claude Code**: Syncs compact AST Genome and Darwin lessons into `CLAUDE.md` to trigger Anthropic's 90% prompt cache read discount (Claude Fable 5.1, Claude Opus 5).
+- **OpenAI Codex**: Syncs into `AGENTS.md` to preserve reasoning purity and prevent token waste in OpenAI GPT-6 Astra, GPT-5.6 Sol.
+- **DeepSeek, Gemini & Kimi**: Optimizes prompt prefix for DeepSeek-V4, Gemini 3.7/3.8 Flash, and Kimi K3 context caching.
 - **Google Antigravity**: Syncs to `.agents/GENOME.md` and `.agents/AGENTS.md`.
 - **Cursor & Windsurf**: Syncs to `.cursor/rules/cookiegli_context.mdc`, `.cursorrules`, and `.windsurfrules`.
-- **MCP Server**: Zero-dependency stdio JSON-RPC 2.0 server providing `cookiegli_get_genome`, `cookiegli_synthesize_context`, `cookiegli_darwin_record`, and `cookiegli_sync`.
+- **MCP Server**: Zero-dependency stdio JSON-RPC 2.0 server providing `cookiegli_boost`, `cookiegli_find_symbols`, `cookiegli_get_genome`, `cookiegli_get_skeleton`, `cookiegli_blast_radius`, `cookiegli_distill_error`, `cookiegli_darwin_record`, and `cookiegli_sync`.
 
 ---
 
@@ -159,4 +169,13 @@ python cli/cookiegli.py darwin evolve --threshold 0.3 --max-capacity 50 --half-l
 
 # 9. Sync Darwin memory directly to .agents/AGENTS.md
 python cli/cookiegli.py darwin sync
+
+# 10. Two-Tier Boost: One-command team initialization (Layer 1 static anchor)
+python cli/cookiegli.py boost --init
+
+# 11. Two-Tier Boost: On-demand task synthesis strictly <=600 tokens (Layer 2 dynamic tail)
+python cli/cookiegli.py boost "Fix cache miss in AstCache relative path"
+
+# 12. Full-text BM25 symbol search via SQLite FTS5
+python cli/cookiegli.py search "AstCache"
 ```

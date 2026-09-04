@@ -126,9 +126,9 @@ class EvolutionHotspots:
     recent_commits: List[str] = field(default_factory=list)
     todo_markers: List[str] = field(default_factory=list)
 
-    def to_compact(self, max_tokens: int = 200) -> str:
+    def to_compact(self, max_tokens: int = 200, include_commits: bool = False) -> str:
         lines = ["[EVOLUTION_HOTSPOTS]"]
-        if self.recent_commits:
+        if include_commits and self.recent_commits:
             lines.append("recent_changes:")
             for c in self.recent_commits[:3]:
                 lines.append(f"  • {c[:60]}")
@@ -136,6 +136,8 @@ class EvolutionHotspots:
             lines.append("open_todos:")
             for t in self.todo_markers[:3]:
                 lines.append(f"  • {t[:60]}")
+        if len(lines) == 1:
+            lines.append("(clean / no pending hotspots)")
 
         result = "\n".join(lines)
         while estimate_tokens(result) > max_tokens and len(lines) > 2:
@@ -156,12 +158,12 @@ class ProjectGenome:
 
     def to_compact(self, max_tokens: int = 1500) -> str:
         blocks = [
-            f"# PROJECT GENOME ({self.generated_at}) | hash:{self.genome_hash}",
+            f"# PROJECT GENOME | id:{self.genome_hash}",
             self.dna.to_compact(350),
             self.deps.to_compact(350),
             self.apis.to_compact(400),
             self.patterns.to_compact(200),
-            self.evolution.to_compact(200),
+            self.evolution.to_compact(200, include_commits=False),
         ]
         result = "\n\n".join(blocks)
         token_count = estimate_tokens(result)
@@ -224,7 +226,7 @@ class ProjectGenome:
             self.dna.to_compact(budget_per_block['dna']),
             self.deps.to_compact(budget_per_block['deps']),
             self.patterns.to_compact(budget_per_block['patterns']),
-            self.evolution.to_compact(budget_per_block['evolution']),
+            self.evolution.to_compact(budget_per_block['evolution'], include_commits=True),
         ]
 
         result = "\n\n".join(slices)
@@ -250,10 +252,11 @@ class GenomeEngine:
         'Unittest': ['unittest.TestCase', 'self.assertEqual'],
     }
 
-    def __init__(self, root_path: str, use_cache: bool = True):
+    def __init__(self, root_path: str, use_cache: bool = True, cache_dir: Optional[str] = None):
         self.root_path = Path(root_path).resolve()
         self.use_cache = use_cache
-        self.scanner = AstScanner(str(self.root_path), use_cache=self.use_cache)
+        self.cache_dir = cache_dir
+        self.scanner = AstScanner(str(self.root_path), use_cache=self.use_cache, cache_dir=self.cache_dir)
 
     def close(self) -> None:
         """Release underlying scanner and cache resources cleanly."""
